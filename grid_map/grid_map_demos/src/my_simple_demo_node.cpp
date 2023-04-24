@@ -11,9 +11,9 @@ int main(int argc, char **argv){
     ros::Publisher publisher = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
 
     // create grid map
-    GridMap map({"elevation"});
+    GridMap map({"my_elevation"});
     map.setFrameId("map");
-    map.setGeometry(Length(1.2, 2.0), 0.03);
+    map.setGeometry(Length(1.2, 1.2), 0.03);
     ROS_INFO("Created map with size %f x %f m (%i x % i cells).", 
         map.getLength().x(), map.getLength().y(),
         map.getSize()(0), map.getSize()(1));
@@ -22,13 +22,23 @@ int main(int argc, char **argv){
     while(nh.ok()){
         // add data to grid map
         ros::Time time = ros::Time::now();
+        Position currentPosition(0, 0);
+        double radius = 0.1;
+        // iterator through the whole grid_map using GridMapIterator
+
+
         for(GridMapIterator it(map); !it.isPastEnd(); ++it){
             Position position;
             map.getPosition(*it, position);
-            map.at("elevation", *it) = -0.04 + 0.2 * std::sin(3.0 * time.toSec() + 5.0 * position.y()) * 2.0 * position.x();
+            ROS_INFO_THROTTLE(1.0, "position.x()=%f,  position.y()=%f ", position.x(), position.y());
+            map.at("my_elevation", *it) = 0;
+            // ROS_INFO_THROTTLE(1.0, "position.x()=%f,  position.y()=%f ", position.x(), position.y());
             // map.at("elevation", *it) = -0.04 + 0.2 * std::sin(3.0 * time.toSec() + 5.0 * position.y()) * position.x();
         }
         
+        for (CircleIterator circleIt(map, currentPosition, radius); !circleIt.isPastEnd(); ++circleIt) {
+            map.at("my_elevation", *circleIt) = 0.3;
+        }
         // Publish grid map
         map.setTimestamp(time.toNSec());
         grid_map_msgs::GridMap message;
