@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+    <rosparam command="load" file="$(find hello_world)/config/hello.yaml"/>
+    <node name="talker" pkg="hello_world" type="talker" output="screen" />
+    <node name="listener" pkg="hello_world" type="listener" output="screen"/>
+</launch>
