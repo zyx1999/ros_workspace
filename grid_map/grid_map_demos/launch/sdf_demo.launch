@@ -18,6 +18,7 @@
     <!-- linearGradient_oblique_and_flat.png-->
     <!-- linearGradient_horizontal.png-->
     <!-- linearGradient_oblique_only.png-->
+    <!-- heightmap_generated.png -->
     <param name="topic" value="~image" />
   </node>
 
