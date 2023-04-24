@@ -11,7 +11,7 @@ int main(int argc, char **argv){
     ros::Publisher publisher = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
 
     // create grid map
-    GridMap map({"my_elevation"});
+    GridMap map({"elevation"});
     map.setFrameId("map");
     map.setGeometry(Length(1.2, 1.2), 0.03);
     ROS_INFO("Created map with size %f x %f m (%i x % i cells).", 
@@ -31,13 +31,18 @@ int main(int argc, char **argv){
             Position position;
             map.getPosition(*it, position);
             ROS_INFO_THROTTLE(1.0, "position.x()=%f,  position.y()=%f ", position.x(), position.y());
-            map.at("my_elevation", *it) = 0;
+            map.at("elevation", *it) = 0;
             // ROS_INFO_THROTTLE(1.0, "position.x()=%f,  position.y()=%f ", position.x(), position.y());
             // map.at("elevation", *it) = -0.04 + 0.2 * std::sin(3.0 * time.toSec() + 5.0 * position.y()) * position.x();
         }
         
         for (CircleIterator circleIt(map, currentPosition, radius); !circleIt.isPastEnd(); ++circleIt) {
-            map.at("my_elevation", *circleIt) = 0.3;
+            map.at("elevation", *circleIt) = 0.6;
+        }
+        Index submapStartIndex(-0.3, -0.3);
+        Size submapBufferSize(10, 10);
+        for (SubmapIterator smIt(map, submapStartIndex, submapBufferSize); !smIt.isPastEnd(); ++smIt) {
+            map.at("elevation", *smIt) = 0.3;
         }
         // Publish grid map
         map.setTimestamp(time.toNSec());
