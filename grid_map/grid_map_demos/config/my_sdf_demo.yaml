@@ -1,0 +1,10 @@
+grid_map_topic: /my_simple_demo/grid_map
+pointcloud_topic: /my_simple_demo/abc
+elevation_layer: "elevation"
+grid_map_visualization:
+  grid_map_topic: /my_simple_demo/grid_map
+  grid_map_visualizations:
+    - name: elevation_points
+      type: point_cloud
+      params:
+        layer: elevation

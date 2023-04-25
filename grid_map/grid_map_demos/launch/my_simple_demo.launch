@@ -1,12 +1,20 @@
 <?xml version="1.0"?>
 <launch>
+    <rosparam command="load" file="$(find grid_map_demos)/config/my_sdf_demo.yaml" />
+
     <!-- node
     pkg : which package the node belongs to. If the pkg make mistakes, the system throw ERROR: can not launch node of type [pkg_name/node_name]
     type: the executable file, which equals to add_executable() in CMakeLists. If the type make mistakes, the system throw ERROR: can not launch node of type [pkg_name/node_name].
     name: the name of the node, which equals to the name defined in .cpp file. If the name make miskakes, the subscriber will not caputre the topic, see in rqt_graph-->
     <node name="my_simple_demo" pkg="grid_map_demos" type="my_simple_demo" output="screen"/>
-    <node name="grid_map_visualization" pkg="grid_map_visualization" type="grid_map_visualization"  output="screen">
+    <!-- <node name="grid_map_visualization" pkg="grid_map_visualization" type="grid_map_visualization"  output="screen">
         <rosparam command="load" file="$(find grid_map_demos)/config/my_simple_demo.yaml"/>
     </node>
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find grid_map_demos)/rviz/grid_map_demo.rviz" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find grid_map_demos)/rviz/grid_map_demo.rviz" /> -->
+
+    <!-- Launch the grid map visualizer -->
+    <node pkg="grid_map_visualization" type="grid_map_visualization" name="grid_map_visualization" output="screen" />
+
+    <!-- Launch RViz with the demo configuration. -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find grid_map_demos)/rviz/my_sdf_demo.rviz" />
 </launch>
