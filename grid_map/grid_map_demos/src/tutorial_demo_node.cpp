@@ -11,12 +11,15 @@ int main(int argc, char** argv)
 {
   // Initialize node and publisher.
   ros::init(argc, argv, "grid_map_tutorial_demo");
+  // create a NodeHandle with namespace "~"
   ros::NodeHandle nh("~");
+  // advertise a Topic named grid_map_tutorial_demo/grid_map
   ros::Publisher publisher = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
 
-  // Create grid map.
+  // Create grid map. Initialize a GridMap with 4 layers.
   GridMap map({"elevation", "normal_x", "normal_y", "normal_z"});
   map.setFrameId("map");
+  // set geometry of map with: (length, resolution, position)
   map.setGeometry(Length(1.2, 2.0), 0.03, Position(0.0, -0.1));
   ROS_INFO("Created map with size %f x %f m (%i x %i cells).\n The center of the map is located at (%f, %f) in the %s frame.",
     map.getLength().x(), map.getLength().y(),
@@ -41,8 +44,9 @@ int main(int argc, char** argv)
       map.at("normal_z", *it) = normal.z();
     }
 
-    // Add noise (using Eigen operators).
+    // Add noise layer (using Eigen operators).
     map.add("noise", 0.015 * Matrix::Random(map.getSize()(0), map.getSize()(1)));
+    // Add elevation_noisy layer
     map.add("elevation_noisy", map.get("elevation") + map["noise"]);
 
     // Adding outliers (accessing cell by position).
@@ -92,7 +96,9 @@ int main(int argc, char** argv)
     // Publish grid map.
     map.setTimestamp(time.toNSec());
     grid_map_msgs::GridMap message;
+    // convert the whole map (with all layers) to a message of GridMap
     GridMapRosConverter::toMessage(map, message);
+    // publish this message in topic: grid_map_tutorial_demo/grid_map
     publisher.publish(message);
     ROS_INFO_THROTTLE(1.0, "Grid map (timestamp %f) published.", message.info.header.stamp.toSec());
 

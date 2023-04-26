@@ -33,7 +33,13 @@ GridMapVisualization::GridMapVisualization(ros::NodeHandle& nodeHandle,
 GridMapVisualization::~GridMapVisualization()
 {
 }
-
+/*
+  1. capture topic name of the GridMap to be visualized into mapTopic_ var, 
+      default value("/grid_map") is used if there is no corresponding topic name in parameter server.
+  2. capture visualization config from parameter server.
+  3. check visualization config
+  4. create instance of Visualization
+*/
 bool GridMapVisualization::readParameters()
 {
   nodeHandle_.param("grid_map_topic", mapTopic_, string("/grid_map"));
@@ -62,6 +68,23 @@ bool GridMapVisualization::readParameters()
   }
 
   // Iterate over all visualizations (may be just one),
+  /*
+    a typical config[i] is like:
+
+    - name: elevation_cells
+      type: grid_cells
+      params:
+        layer: elevation
+        lower_threshold: -0.08
+        upper_threshold: 0.0
+    
+    there will be multi config[i] in config, the follow for-loop will check all those config,
+    and the config[i] should obey:
+    1. config[i]'s Type == TypeStruct
+    2. config[i] has attribute: type, and type must be valid.
+    3. config[i] has attribute: name, and name must be string, and unique in all config[]. 
+  
+  */
   for (int i = 0; i < config.size(); ++i) {
     if (config[i].getType() != XmlRpc::XmlRpcValue::TypeStruct) {
       ROS_ERROR("%s: Visualizations must be specified as maps, but they are XmlRpcType:%d",
@@ -103,17 +126,24 @@ bool GridMapVisualization::readParameters()
     }
 
     // Make sure the visualization has a valid type.
+    /*
+      valid type contains: point_cloud, flat_point_cloud, vectors, occupancy_grid, grid_cells, map_region
+      other type is invalid.
+    */
     if (!factory_.isValidType(config[i]["type"])) {
       ROS_ERROR("Could not find visualization of type '%s'.", std::string(config[i]["type"]).c_str());
       return false;
     }
-  }
-
+  }// end for
+  
+  // create instance of Visualization by type & name. 
   for (int i = 0; i < config.size(); ++i) {
     std::string type = config[i]["type"];
     std::string name = config[i]["name"];
     auto visualization = factory_.getInstance(type, name);
+    // for each instance, read parameters from config[i]
     visualization->readParameters(config[i]);
+    // visualization_ is of type vector<shared_ptr<VisualizationBase>>>
     visualizations_.push_back(visualization);
     ROS_INFO("%s: Configured visualization of type '%s' with name '%s'.",
              visualizationsParameter_.c_str(), type.c_str(), name.c_str());
@@ -124,6 +154,7 @@ bool GridMapVisualization::readParameters()
 
 bool GridMapVisualization::initialize()
 {
+  // Iterator through all visualization instance and call initialize() to advertise corresponding message.
   for (auto& visualization : visualizations_) {
     visualization->initialize();
   }
@@ -142,7 +173,7 @@ void GridMapVisualization::updateSubscriptionCallback(const ros::TimerEvent&)
       break;
     }
   }
-
+  // if one of the visulization instance is Active, then make NodeHandle subscribe mapTopic_
   if (!isSubscribed_ && isActive) {
     mapSubscriber_ = nodeHandle_.subscribe(mapTopic_, 1, &GridMapVisualization::callback, this);
     isSubscribed_ = true;
@@ -159,9 +190,11 @@ void GridMapVisualization::callback(const grid_map_msgs::GridMap& message)
 {
   ROS_DEBUG("Grid map visualization received a map (timestamp %f) for visualization.",
             message.info.header.stamp.toSec());
+  // convert message to map
   grid_map::GridMap map;
   grid_map::GridMapRosConverter::fromMessage(message, map);
 
+  // call visualize() to publish the corresponding layer of the map
   for (auto& visualization : visualizations_) {
     visualization->visualize(map);
   }

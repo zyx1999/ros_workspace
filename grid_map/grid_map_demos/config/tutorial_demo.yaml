@@ -1,5 +1,10 @@
+# topic name need to be captured by grid_map_visualization node.
 grid_map_topic: /grid_map_tutorial_demo/grid_map
 
+# visualization config in XmlRpc style.
+# name & type will be analysis in GridMapVisualization.cpp
+# attribute [type] in config must be one of those: point_cloud, flat_point_cloud, vectors, occupancy_grid, grid_cells, map_region
+# params will be analysis in corresponding Visualization class according to its type. e.t. [type]==point_cloud <--> PointCloudVisualization.cpp  
 grid_map_visualizations:
 
   - name: elevation_points
