@@ -63,6 +63,10 @@ include_directories(
 )
 
 ## Declare a cpp executable
+add_executable(my_sdf_demo
+  src/my_sdf_demo_node.cpp
+)
+
 add_executable(my_simple_demo
   src/my_simple_demo_node.cpp
 )
@@ -131,6 +135,11 @@ add_executable(sdf_demo
 )
 
 ## Specify libraries to link a library or executable target against
+target_link_libraries(
+  my_sdf_demo
+  ${catkin_LIBRARIES}
+)
+
 target_link_libraries(
   my_simple_demo
   ${catkin_LIBRARIES}
