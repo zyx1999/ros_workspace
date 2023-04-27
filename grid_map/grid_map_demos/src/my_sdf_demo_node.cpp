@@ -1,5 +1,8 @@
 #include <ros/ros.h>
 #include <grid_map_ros/grid_map_ros.hpp>
+#include <sensor_msgs/PointCloud2.h>
+#include <grid_map_ros/GridMapRosConverter.hpp>
+#include <grid_map_sdf/SignedDistanceField.hpp>
 #include <vector>
 #include <string>
 
@@ -10,7 +13,8 @@ int main(int argc, char **argv){
     ros::NodeHandle nh("~");
     ros::Publisher publisher = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
     
-    GridMap map({"elevation"});
+    std::string elevationLayer_("elevation");
+    GridMap map({elevationLayer_});
     map.setFrameId("map");
     map.setGeometry(Length(2.0, 2.0), 0.05, Position(0.0, 0.0));
     ROS_INFO("Create map with size %f x %f m (%i x %i cells).\n The center of the map is located at (%f, %f) in the %s frame.", 
@@ -18,23 +22,62 @@ int main(int argc, char **argv){
       map.getSize()(0), map.getSize()(1),
       map.getPosition().x(), map.getPosition().y(), map.getFrameId().c_str());
     
+    // sdf init
+    std::string pointcloudTopic("pointcloud_topic");
+    ros::Publisher pointcloudPublisher_;
+    ros::Publisher freespacePublisher_;
+    ros::Publisher occupiedPublisher_;
+    pointcloudPublisher_ = nh.advertise<sensor_msgs::PointCloud2>(pointcloudTopic + "/full_sdf", 1);
+    freespacePublisher_ = nh.advertise<sensor_msgs::PointCloud2>(pointcloudTopic + "/free_space", 1);
+    occupiedPublisher_ = nh.advertise<sensor_msgs::PointCloud2>(pointcloudTopic + "/occupied_space", 1);    
+
     ros::Rate rate(30.0);
     while(nh.ok()){
+        // elevation
         ros::Time time = ros::Time::now();
-        int i = 0;
+        int i = 0, j = 0;
         for(GridMapIterator it(map); !it.isPastEnd(); ++it){
+            if(j % 10 == 0){
+                ++i;
+            }
+            ++j;
             Position pos;
             map.getPosition(*it, pos);
-            map.at("elevation", *it) = (i%3)/3.0;
-            ++i;
+            map.at(elevationLayer_, *it) = (i%2)/10.0;
         }
+
+        auto& elevationData = map.get(elevationLayer_);
+        // Inpaint if needed.
+        if (elevationData.hasNaN()) {
+            const float inpaint{elevationData.minCoeffOfFinites()};
+            ROS_WARN("[SdfDemo] Map contains NaN values. Will apply inpainting with min value.");
+            elevationData = elevationData.unaryExpr([=](float v) { return std::isfinite(v)? v : inpaint; });
+        }
+        // Generate SDF.
+        const float heightMargin{0.1};
+        const float minValue{elevationData.minCoeffOfFinites() - heightMargin};
+        const float maxValue{elevationData.maxCoeffOfFinites() + heightMargin};
+        grid_map::SignedDistanceField sdf(map, elevationLayer_, minValue, maxValue);    
+
+        // Extract as point clouds.
+        sensor_msgs::PointCloud2 pointCloud2Msg;
+        grid_map::GridMapRosConverter::toPointCloud(sdf, pointCloud2Msg);
+        pointcloudPublisher_.publish(pointCloud2Msg);
+
+        grid_map::GridMapRosConverter::toPointCloud(sdf, pointCloud2Msg, 1, [](float sdfValue) { return sdfValue > 0.0; });
+        freespacePublisher_.publish(pointCloud2Msg);
+
+        grid_map::GridMapRosConverter::toPointCloud(sdf, pointCloud2Msg, 1, [](float sdfValue) { return sdfValue <= 0.0; });
+        occupiedPublisher_.publish(pointCloud2Msg);      
+
+        // publish
         map.setTimestamp(time.toNSec());
         grid_map_msgs::GridMap message;
         GridMapRosConverter::toMessage(map, message);
         publisher.publish(message);
         ROS_INFO_THROTTLE(1.0, "Grid map (timestamp %f) published.", message.info.header.stamp.toSec());
         rate.sleep();
-    }    
+    }
     
     return 0;
 }
