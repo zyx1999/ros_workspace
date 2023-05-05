@@ -11,8 +11,11 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  sensor_msgs
+  image_transport
+  cv_bridge
 )
-
+find_package(OpenCV REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -116,14 +119,21 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
+  include/video_process
   ${catkin_INCLUDE_DIRS}
-)
+  )
 add_executable(talker src/talker.cpp)
 target_link_libraries(talker ${catkin_LIBRARIES})
 
 add_executable(listener src/listener.cpp)
 target_link_libraries(listener ${catkin_LIBRARIES})
+
+add_executable(image_subscriber src/image_subscriber.cpp)
+target_link_libraries(image_subscriber ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(image_publisher src/image_publisher.cpp)
+target_link_libraries(image_publisher ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/hello_world.cpp

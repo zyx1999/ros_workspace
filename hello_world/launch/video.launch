@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+
+    <node name="image_publisher" pkg="hello_world" type="image_publisher" output="screen"/>
+    <node name="image_subscriber" pkg="hello_world" type="image_subscriber" output="screen"/>
+
+</launch>
