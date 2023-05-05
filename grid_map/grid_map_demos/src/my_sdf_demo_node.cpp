@@ -3,8 +3,10 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <grid_map_ros/GridMapRosConverter.hpp>
 #include <grid_map_sdf/SignedDistanceField.hpp>
+#include "grid_map_sdf/SignedDistance2d.hpp"
 #include <vector>
 #include <string>
+#include <fstream>
 
 using namespace grid_map;
 void generateSampleGridMap(grid_map::GridMap&, std::string&);
@@ -17,7 +19,8 @@ int main(int argc, char **argv){
     std::string elevationLayer_("elevation");
     GridMap map({elevationLayer_});
     map.setFrameId("map");
-    map.setGeometry(Length(3.0, 3.0), 0.05, Position(0.0, 0.0));
+    float resolution_{0.05};
+    map.setGeometry(Length(3.0, 3.0), resolution_, Position(0.0, 0.0));
     ROS_INFO("Create map with size %f x %f m (%i x %i cells).\n The center of the map is located at (%f, %f) in the %s frame.", 
       map.getLength().x(), map.getLength().y(),
       map.getSize()(0), map.getSize()(1),
@@ -34,6 +37,7 @@ int main(int argc, char **argv){
 
     generateSampleGridMap(map, elevationLayer_);
 
+    // elevationData is Matrix
     auto& elevationData = map.get(elevationLayer_);
     // Inpaint if needed.
     if (elevationData.hasNaN()) {
@@ -41,11 +45,20 @@ int main(int argc, char **argv){
         ROS_WARN("[SdfDemo] Map contains NaN values. Will apply inpainting with min value.");
         elevationData = elevationData.unaryExpr([=](float v) { return std::isfinite(v)? v : inpaint; });
     }
-    // Generate SDF.
-    const float heightMargin{0.1};
-    const float minValue{elevationData.minCoeffOfFinites() - heightMargin};
-    const float maxValue{elevationData.maxCoeffOfFinites() + heightMargin};
-    grid_map::SignedDistanceField sdf(map, elevationLayer_, minValue, maxValue);  
+    // Generate 3D SDF.
+    // const float heightMargin{0.0};
+    // const float minValue{elevationData.minCoeffOfFinites() - heightMargin};
+    // const float maxValue{elevationData.maxCoeffOfFinites() + heightMargin};
+    // grid_map::SignedDistanceField sdf(map, elevationLayer_, minValue, maxValue);
+
+    // Generate 2D SDF.
+    Eigen::Matrix<bool, -1, -1> occupancy = elevationData.unaryExpr([=](float val) { return val > 0.5; });
+    auto signedDistance = grid_map::signed_distance_field::signedDistanceFromOccupancy(occupancy, resolution_);
+    map.add("sdf", signedDistance);
+
+    // std::ofstream fout("/home/yuxuanzhao/Desktop/signedDis.txt", std::ios::trunc);
+    // fout<<signedDistance<<std::endl;
+    // fout.close();
 
     ros::Rate rate(30.0);
     while(nh.ok()){
@@ -54,15 +67,15 @@ int main(int argc, char **argv){
         map.setTimestamp(time.toNSec());
 
         // Extract as point clouds. puhlish sdf
-        sensor_msgs::PointCloud2 pointCloud2Msg;
-        grid_map::GridMapRosConverter::toPointCloud(sdf, pointCloud2Msg);
-        pointcloudPublisher_.publish(pointCloud2Msg);
+        // sensor_msgs::PointCloud2 pointCloud2Msg;
+        // grid_map::GridMapRosConverter::toPointCloud(sdf, pointCloud2Msg);
+        // pointcloudPublisher_.publish(pointCloud2Msg);
 
-        grid_map::GridMapRosConverter::toPointCloud(sdf, pointCloud2Msg, 1, [](float sdfValue) { return sdfValue > 0.0; });
-        freespacePublisher_.publish(pointCloud2Msg);
+        // grid_map::GridMapRosConverter::toPointCloud(sdf, pointCloud2Msg, 1, [](float sdfValue) { return sdfValue > 0.0; });
+        // freespacePublisher_.publish(pointCloud2Msg);
 
-        grid_map::GridMapRosConverter::toPointCloud(sdf, pointCloud2Msg, 1, [](float sdfValue) { return sdfValue <= 0.0; });
-        occupiedPublisher_.publish(pointCloud2Msg);      
+        // grid_map::GridMapRosConverter::toPointCloud(sdf, pointCloud2Msg, 1, [](float sdfValue) { return sdfValue <= 0.0; });
+        // occupiedPublisher_.publish(pointCloud2Msg);
 
         // publish
         grid_map_msgs::GridMap message;
@@ -87,31 +100,31 @@ void generateSampleGridMap(grid_map::GridMap& map, std::string& elevationLayer_)
         !it.isPastEnd(); ++it) {
         map.at(elevationLayer_, *it) = 1.0;
     }
-    // circle
-    Position center1(0.0, 0.0);
-    double radius1 = 0.4;
-    for (grid_map::CircleIterator it(map, center1, radius1);
-        !it.isPastEnd(); ++it) {
-        map.at(elevationLayer_, *it) = 1.0;
-    }
-    // Ellipse      
-    Position center2(-1.0, -1.0);
-    Length length(0.45, 0.9);
-    for (grid_map::EllipseIterator it(map, center2, length, M_PI_4);
-        !it.isPastEnd(); ++it) {
-        map.at(elevationLayer_, *it) = 1.0;
-    }
-    // line
-    Index start1(-18, 2);
-    Index end1(-2, 13);
-    for (grid_map::LineIterator it(map, start1, end1);
-        !it.isPastEnd(); ++it) {
-        map.at(elevationLayer_, *it) = 1.0;
-    }
-    Index start2(-18, 1);
-    Index end2(-2, 12);
-    for (grid_map::LineIterator it(map, start2, end2);
-        !it.isPastEnd(); ++it) {
-        map.at(elevationLayer_, *it) = 1.0;
-    }
+    // // circle
+    // Position center1(0.0, 0.0);
+    // double radius1 = 0.4;
+    // for (grid_map::CircleIterator it(map, center1, radius1);
+    //     !it.isPastEnd(); ++it) {
+    //     map.at(elevationLayer_, *it) = 1.0;
+    // }
+    // // Ellipse      
+    // Position center2(-1.0, -1.0);
+    // Length length(0.45, 0.9);
+    // for (grid_map::EllipseIterator it(map, center2, length, M_PI_4);
+    //     !it.isPastEnd(); ++it) {
+    //     map.at(elevationLayer_, *it) = 1.0;
+    // }
+    // // line
+    // Index start1(-18, 2);
+    // Index end1(-2, 13);
+    // for (grid_map::LineIterator it(map, start1, end1);
+    //     !it.isPastEnd(); ++it) {
+    //     map.at(elevationLayer_, *it) = 1.0;
+    // }
+    // Index start2(-18, 1);
+    // Index end2(-2, 12);
+    // for (grid_map::LineIterator it(map, start2, end2);
+    //     !it.isPastEnd(); ++it) {
+    //     map.at(elevationLayer_, *it) = 1.0;
+    // }
 }
