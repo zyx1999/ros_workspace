@@ -4,3 +4,12 @@ grid_map_visualizations:
     type: point_cloud
     params:
       layer: elevation
+  - name: sdf_points
+    type: point_cloud
+    params:
+      layer: sdf
+  - name: map_region
+    type: map_region
+    params:
+      color: 3289650
+      line_width: 0.05
