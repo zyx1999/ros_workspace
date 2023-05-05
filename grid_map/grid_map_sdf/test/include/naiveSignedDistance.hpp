@@ -12,6 +12,9 @@ namespace grid_map {
 namespace signed_distance_field {
 
 inline Eigen::Matrix<bool, -1, -1> occupancyAtHeight(const Matrix& elevationMap, float height) {
+  // unaryExpr means you can apply custom function to eigen. 
+  // [=] in lambda means lambda function can access all elements in target eigen.
+  // this function convert a float Matrix into a bool Matrix.
   Eigen::Matrix<bool, -1, -1> occupancy = elevationMap.unaryExpr([=](float val) { return val > height; });
   return occupancy;
 }
