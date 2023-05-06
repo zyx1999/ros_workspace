@@ -26,7 +26,7 @@ int main(int argc, char **argv){
     GridMap map({elevationLayer_});
     map.setFrameId("map");
     float resolution_{0.05};
-    map.setGeometry(Length(3.0, 3.0), resolution_, Position(0.0, 0.0));
+    map.setGeometry(Length(2.0, 2.0), resolution_, Position(0.0, 0.0));
     ROS_INFO("Create map with size %f x %f m (%i x %i cells).\n The center of the map is located at (%f, %f) in the %s frame.", 
       map.getLength().x(), map.getLength().y(),
       map.getSize()(0), map.getSize()(1),
@@ -88,13 +88,13 @@ void generateSampleGridMap(grid_map::GridMap& map, std::string& elevationLayer_)
     for(GridMapIterator it(map); !it.isPastEnd(); ++it){
         map.at(elevationLayer_, *it) = 0;
     }
-    // submap
-    Index submapStartIndex(3, 5);
-    Index submapBufferSize(12, 7);
-    for (grid_map::SubmapIterator it(map, submapStartIndex, submapBufferSize);
-        !it.isPastEnd(); ++it) {
-        map.at(elevationLayer_, *it) = 1.0;
-    }
+    // // submap
+    // Index submapStartIndex(3, 5);
+    // Index submapBufferSize(12, 7);
+    // for (grid_map::SubmapIterator it(map, submapStartIndex, submapBufferSize);
+    //     !it.isPastEnd(); ++it) {
+    //     map.at(elevationLayer_, *it) = 1.0;
+    // }
     // // circle
     // Position center1(0.0, 0.0);
     // double radius1 = 0.4;
@@ -109,7 +109,7 @@ void generateSampleGridMap(grid_map::GridMap& map, std::string& elevationLayer_)
     //     !it.isPastEnd(); ++it) {
     //     map.at(elevationLayer_, *it) = 1.0;
     // }
-    // // line
+    // line
     // Index start1(-18, 2);
     // Index end1(-2, 13);
     // for (grid_map::LineIterator it(map, start1, end1);
@@ -122,4 +122,18 @@ void generateSampleGridMap(grid_map::GridMap& map, std::string& elevationLayer_)
     //     !it.isPastEnd(); ++it) {
     //     map.at(elevationLayer_, *it) = 1.0;
     // }
+    // box
+    Index lt(5, 5), rt(5, 30), lb(30, 5), rb(30, 30);
+    for(grid_map::LineIterator it(map, lt, rt); !it.isPastEnd(); ++it){
+        map.at(elevationLayer_, *it) = 1.0;
+    }
+    for(grid_map::LineIterator it(map, lb, rb); !it.isPastEnd(); ++it){
+        map.at(elevationLayer_, *it) = 1.0;
+    } 
+    for(grid_map::LineIterator it(map, lt, lb); !it.isPastEnd(); ++it){
+        map.at(elevationLayer_, *it) = 1.0;
+    } 
+    for(grid_map::LineIterator it(map, rt, rb); !it.isPastEnd(); ++it){
+        map.at(elevationLayer_, *it) = 1.0;
+    } 
 }
