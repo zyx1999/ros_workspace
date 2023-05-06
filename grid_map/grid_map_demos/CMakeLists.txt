@@ -23,6 +23,8 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   octomap_msgs
   filters
+  std_msgs
+  image_transport
 )
 
 find_package(OpenCV REQUIRED
@@ -30,7 +32,7 @@ find_package(OpenCV REQUIRED
   opencv_highgui
   CONFIG
 )
-
+find_package(OpenCV REQUIRED)
 find_package(octomap REQUIRED)
 
 ###################################
@@ -63,6 +65,10 @@ include_directories(
 )
 
 ## Declare a cpp executable
+add_executable(image_converter 
+  src/image_converter_node.cpp
+)
+
 add_executable(my_sdf_demo
   src/my_sdf_demo_node.cpp
 )
@@ -136,8 +142,13 @@ add_executable(sdf_demo
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(
+  image_converter
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+)
+
+target_link_libraries(
   my_sdf_demo
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
 
 target_link_libraries(

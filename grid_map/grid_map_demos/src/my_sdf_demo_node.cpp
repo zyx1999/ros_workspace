@@ -7,6 +7,12 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <image_transport/image_transport.h>
+#include <opencv2/highgui/highgui.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/core/eigen.hpp>
+#include <opencv2/opencv.hpp>
+
 
 using namespace grid_map;
 void generateSampleGridMap(grid_map::GridMap&, std::string&);
@@ -45,20 +51,19 @@ int main(int argc, char **argv){
         ROS_WARN("[SdfDemo] Map contains NaN values. Will apply inpainting with min value.");
         elevationData = elevationData.unaryExpr([=](float v) { return std::isfinite(v)? v : inpaint; });
     }
-    // Generate 3D SDF.
-    // const float heightMargin{0.0};
-    // const float minValue{elevationData.minCoeffOfFinites() - heightMargin};
-    // const float maxValue{elevationData.maxCoeffOfFinites() + heightMargin};
-    // grid_map::SignedDistanceField sdf(map, elevationLayer_, minValue, maxValue);
 
     // Generate 2D SDF.
     Eigen::Matrix<bool, -1, -1> occupancy = elevationData.unaryExpr([=](float val) { return val > 0.5; });
     auto signedDistance = grid_map::signed_distance_field::signedDistanceFromOccupancy(occupancy, resolution_);
-    map.add("sdf", signedDistance);
+    map.add("sdf2d", signedDistance);
 
-    // std::ofstream fout("/home/yuxuanzhao/Desktop/signedDis.txt", std::ios::trunc);
-    // fout<<signedDistance<<std::endl;
-    // fout.close();
+    // publish to image_converter with topic: /my_sdf_demo/signed_distance/image_topics
+    cv::Mat signedDistanceMat_;
+    cv::eigen2cv(signedDistance, signedDistanceMat_);
+    sensor_msgs::ImagePtr signedDistanceMsg_ = cv_bridge::CvImage(std_msgs::Header(), 
+        sensor_msgs::image_encodings::TYPE_32FC1, signedDistanceMat_).toImageMsg();
+    image_transport::ImageTransport imgTrans(nh);
+    image_transport::Publisher imgTransPublisher = imgTrans.advertise("signed_distance", 1);
 
     ros::Rate rate(30.0);
     while(nh.ok()){
@@ -66,18 +71,8 @@ int main(int argc, char **argv){
         ros::Time time = ros::Time::now();   
         map.setTimestamp(time.toNSec());
 
-        // Extract as point clouds. puhlish sdf
-        // sensor_msgs::PointCloud2 pointCloud2Msg;
-        // grid_map::GridMapRosConverter::toPointCloud(sdf, pointCloud2Msg);
-        // pointcloudPublisher_.publish(pointCloud2Msg);
-
-        // grid_map::GridMapRosConverter::toPointCloud(sdf, pointCloud2Msg, 1, [](float sdfValue) { return sdfValue > 0.0; });
-        // freespacePublisher_.publish(pointCloud2Msg);
-
-        // grid_map::GridMapRosConverter::toPointCloud(sdf, pointCloud2Msg, 1, [](float sdfValue) { return sdfValue <= 0.0; });
-        // occupiedPublisher_.publish(pointCloud2Msg);
-
         // publish
+        imgTransPublisher.publish(signedDistanceMsg_);
         grid_map_msgs::GridMap message;
         grid_map::GridMapRosConverter::toMessage(map, message);
         publisher.publish(message);

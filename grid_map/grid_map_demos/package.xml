@@ -26,6 +26,9 @@
   <depend>sensor_msgs</depend>
   <depend>cv_bridge</depend>
   <depend>octomap_msgs</depend>
+  <depend>filters</depend>
+  <depend>std_msgs</depend>
+  <depend>image_transport</depend>
 <!--   <test_depend>cmake_code_coverage</test_depend> -->
   <test_depend>gtest</test_depend>
 </package>
