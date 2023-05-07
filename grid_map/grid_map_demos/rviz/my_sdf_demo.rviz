@@ -85,9 +85,89 @@ Visualization Manager:
       Queue Size: 10
       Selectable: false
       Size (Pixels): 3
-      Size (m): 0.029999999329447746
+      Size (m): 0.5
       Style: Boxes
       Topic: /grid_map_visualization/elevation_points
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: false
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 0.08491750061511993
+        Min Value: -0.16515299677848816
+        Value: false
+      Axis: Z
+      Channel Name: z
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 85; 127
+      Name: Elevation Noisy
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: false
+      Size (Pixels): 3
+      Size (m): 0.5
+      Style: Boxes
+      Topic: /grid_map_visualization/elevation_noisy
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: false
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: false
+      Axis: Z
+      Channel Name: z
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Name: SDF2D
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: false
+      Size (Pixels): 3
+      Size (m): 0.5
+      Style: Flat Squares
+      Topic: /grid_map_visualization/sdf_points
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 0.08491750061511993
+        Min Value: -0.16515299677848816
+        Value: false
+      Axis: Z
+      Channel Name: z
+      Class: rviz/PointCloud2
+      Color: 0; 255; 0
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Name: Extrema Points
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: false
+      Size (Pixels): 3
+      Size (m): 0.5
+      Style: Boxes
+      Topic: /grid_map_visualization/extrema_points
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: false
@@ -113,7 +193,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.009999999776482582
+      Size (m): 0.5
       Style: Flat Squares
       Topic: /my_sdf_demo/pointcloud_topic/full_sdf
       Unreliable: false
@@ -141,7 +221,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.009999999776482582
+      Size (m): 0.5
       Style: Flat Squares
       Topic: /my_sdf_demo/pointcloud_topic/free_space
       Unreliable: false
@@ -160,7 +240,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
@@ -169,35 +249,9 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.009999999776482582
+      Size (m): 0.2
       Style: Flat Squares
       Topic: /my_sdf_demo/pointcloud_topic/occupied_space
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: true
-    - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: false
-      Axis: Z
-      Channel Name: z
-      Class: rviz/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: Intensity
-      Decay Time: 0
-      Enabled: true
-      Invert Rainbow: false
-      Name: SDF2D
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: false
-      Size (Pixels): 3
-      Size (m): 0.029999999329447746
-      Style: Flat Squares
-      Topic: /grid_map_visualization/sdf_points
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
