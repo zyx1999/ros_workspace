@@ -65,8 +65,9 @@ include_directories(
 )
 
 ## Declare a cpp executable
-add_executable(image_converter 
-  src/image_converter_node.cpp
+add_executable(detector
+  src/detector.cpp
+  src/SDFDescriptor.cpp
 )
 
 add_executable(my_sdf_demo
@@ -142,7 +143,7 @@ add_executable(sdf_demo
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(
-  image_converter
+  detector
   ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
 

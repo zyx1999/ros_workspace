@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
     <node name="my_sdf_demo" pkg="grid_map_demos" type="my_sdf_demo" output="screen"/>
-    <node name="image_converter" pkg="grid_map_demos" type="image_converter" output="screen"/>
+    <node name="detector" pkg="grid_map_demos" type="detector" output="screen"/>
     <node name="grid_map_visualization" pkg="grid_map_visualization" type="grid_map_visualization" output="screen">
         <rosparam command="load" file="$(find grid_map_demos)/config/my_sdf_demo.yaml"/>
     </node>

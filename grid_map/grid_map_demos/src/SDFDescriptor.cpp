@@ -1,17 +1,6 @@
-#include <ros/ros.h>
-#include <Eigen/Core>
-#include <Eigen/Dense>
-#include <image_transport/image_transport.h>
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/image_encodings.h>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/highgui/highgui_c.h>
-#include <opencv2/core/eigen.hpp>
-#include <fstream>
-int once = 0;
+#include "grid_map_demos/SDFDescriptor.hpp"
 
-void toTXT(const std::vector<cv::Mat>& src, const std::vector<std::string>& pathnames){
+void SDFDescriptor::toTXT(const std::vector<cv::Mat>& src, const std::vector<std::string>& pathnames){
     for(int i = 0; i <  pathnames.size(); i++){
         Eigen::Matrix<float, -1, -1> target;
         cv::cv2eigen(src[i], target);
@@ -26,7 +15,7 @@ void toTXT(const std::vector<cv::Mat>& src, const std::vector<std::string>& path
     }
 }
 
-void find_extrema_points(cv::Mat& gauss, std::vector<cv::Point>& extrema_points, cv::Mat& extrema){
+void SDFDescriptor::find_extrema_points(cv::Mat& sdf, cv::Mat& gauss, std::vector<cv::Point>& extrema_points, cv::Mat& extrema){
     extrema = cv::Mat::zeros(gauss.size(), CV_32FC1);
     // loop through each pixel in the image
     for(int i = 1; i < gauss.rows - 1; i++){
@@ -46,14 +35,14 @@ void find_extrema_points(cv::Mat& gauss, std::vector<cv::Point>& extrema_points,
                 }
             }
             if(is_extremum){
-                extrema.at<float>(i, j) = value;
+                extrema.at<float>(i, j) = sdf.at<float>(i, j);
             }
         }
     }
     cv::findNonZero(extrema, extrema_points);
 }
 
-void calculate_gaussian_curvature(const cv::Mat& src, int ksize, cv::Mat& dst){
+void SDFDescriptor::calculate_gaussian_curvature(const cv::Mat& src, int ksize, cv::Mat& dst){
     cv::Mat gaussBlur, dx, dy, dxx, dxy, dyy;
     // 1. gaussian blue
     cv::GaussianBlur(src, gaussBlur, cv::Size(5, 5), 0, 0);
@@ -87,15 +76,16 @@ void calculate_gaussian_curvature(const cv::Mat& src, int ksize, cv::Mat& dst){
             hessianAtEachPoint_.at<float>(1, 1) = fyy;
             cv::Mat eigenValue_, eigenVector_;
             cv::eigen(hessianAtEachPoint_, eigenValue_, eigenVector_);
-            // float gaussCurv_ = eigenValue_.at<float>(0, 0) * eigenValue_.at<float>(1, 0);
+            float gaussCurv_ = eigenValue_.at<float>(0, 0) * eigenValue_.at<float>(1, 0);
             // gaussianCurvature_.at<float>(i, j) = gaussCurv_;
 
             dst.at<float>(i, j) = k;
+            // dst.at<float>(i, j) = gaussCurv_;
         }
     }
 }
 
-void imageCallback(const sensor_msgs::ImageConstPtr& msg){
+void SDFDescriptor::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     cv_bridge::CvImagePtr cv_ptr;
     try{
         cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_32FC1);
@@ -110,33 +100,21 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     std::vector<cv::Point> extrema_points_;
 
     calculate_gaussian_curvature(sdfSrc_, 3, gaussCurv_);
-    find_extrema_points(gaussCurv_, extrema_points_, extrema_);
+    find_extrema_points(sdfSrc_, gaussCurv_, extrema_points_, extrema_);
 
-    cv::imshow("sdf message", sdfSrc_);
-    cv::imshow("Gaussian Curvature", gaussCurv_);
-    cv::waitKey(3);
+    sensor_msgs::ImagePtr msg_extrema_points;
+    msg_extrema_points = cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::TYPE_32FC1, extrema_).toImageMsg();
+    // publish back to map node
+    ipub_.publish(msg_extrema_points);
 
-    if(once == 0){
-        once++;
+    // cv::imshow("sdf message", sdfSrc_);
+    // cv::imshow("Gaussian Curvature", gaussCurv_);
+    // cv::waitKey(3);
+
+    if(once_ == 0){
+        once_++;
         std::vector<cv::Mat> data_{gaussCurv_, extrema_};
         std::vector<std::string> filenames_{"/home/yuxuanzhao/Desktop/gaussCurv.txt", "/home/yuxuanzhao/Desktop/extrema.txt"};
         toTXT(data_, filenames_);
     }
-}
-
-int main(int argc, char** argv){
-    ros::init(argc, argv, "image_converter");
-    ros::NodeHandle nh("~");
-
-    cv::namedWindow("sdf message", CV_WINDOW_NORMAL);
-    cv::namedWindow("Gaussian Curvature", CV_WINDOW_NORMAL);
-    cv::startWindowThread();
-
-    image_transport::ImageTransport it(nh);
-    image_transport::Subscriber sub = it.subscribe("/my_sdf_demo/signed_distance", 1, imageCallback);
-    
-    ros::spin();
-
-    cv::destroyAllWindows();
-    return 0;
 }
