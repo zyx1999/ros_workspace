@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <grid_map_ros/grid_map_ros.hpp>
+#include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <grid_map_ros/GridMapRosConverter.hpp>
 #include <grid_map_sdf/SignedDistanceField.hpp>
@@ -11,7 +12,9 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/eigen.hpp>
+#include <opencv2/core.hpp>
 #include <opencv2/opencv.hpp>
+#include <pcl_conversions/pcl_conversions.h>
 using namespace grid_map;
 
 class SDF2D{
@@ -26,7 +29,8 @@ public:
         map.getLength().x(), map.getLength().y(),
         map.getSize()(0), map.getSize()(1),
         map.getPosition().x(), map.getPosition().y(), map.getFrameId().c_str());
-
+        rows_ = map.getSize()(0);
+        cols_ = map.getSize()(1);
         // sdf init.
         pointcloudPublisher_ = nh.advertise<sensor_msgs::PointCloud2>(pointcloudTopic + "/full_sdf", 1);
         freespacePublisher_ = nh.advertise<sensor_msgs::PointCloud2>(pointcloudTopic + "/free_space", 1);
@@ -62,10 +66,12 @@ public:
             sensor_msgs::image_encodings::TYPE_32FC1, signedDistanceMat_).toImageMsg();
         image_transport::ImageTransport imgTrans(nh);
         imgTransPub = imgTrans.advertise("signed_distance", 1);
-        imgTransSub = imgTrans.subscribe("extrema_points", 1, boost::bind(&SDF2D::callback, this, _1));
+        // imgTransSub = imgTrans.subscribe("extrema_points", 1, boost::bind(&SDF2D::callback, this, _1));
+
+        sub_extrema_points_ = nh.subscribe<sensor_msgs::PointCloud>("extrema_points", 1, boost::bind(&SDF2D::callback, this, _1));
     }
     void generateSampleGridMap(grid_map::GridMap&, std::string&);
-    void callback(const sensor_msgs::ImageConstPtr&);
+    void callback(const sensor_msgs::PointCloud::ConstPtr& msg);
 // private:
     ros::NodeHandle nh;
     ros::Publisher publisher;
@@ -79,6 +85,8 @@ public:
     sensor_msgs::ImagePtr signedDistanceMsg_;
     image_transport::Publisher imgTransPub;
     image_transport::Subscriber imgTransSub;
+    ros::Subscriber sub_extrema_points_;
+    int rows_{0}, cols_{0};
 };
 
 
@@ -108,20 +116,19 @@ int main(int argc, char **argv){
     
     return 0;
 }
-void SDF2D::callback(const sensor_msgs::ImageConstPtr& msg){
-    cv_bridge::CvImagePtr cv_ptr;
-    try{
-        cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_32FC1);
-        ROS_INFO_THROTTLE(1.0, "callback1...");
-    } catch (cv_bridge::Exception& e){
-        ROS_ERROR("cv_bridge exception: %s", e.what());
-        return ;
+void SDF2D::callback(const sensor_msgs::PointCloud::ConstPtr& msg){
+    ROS_INFO("[Callback] SDF2D...");
+    cv::Mat expt = cv::Mat::zeros(rows_, cols_, CV_32FC1);
+    for(const auto& pt : msg->points){
+        expt.at<float>(pt.x, pt.y) = map.at("sdf2d", Index(pt.x, pt.y));
     }
-    cv::Mat extrema_src_ = cv_ptr->image;
-    Eigen::Matrix<float, -1, -1> extrema_data_;
-    // convert Mat into Matrix
-    cv::cv2eigen(extrema_src_, extrema_data_);
-    map.add("extrema", extrema_data_);
+    Eigen::Matrix<float, -1, -1> extrema_layer;
+    cv::cv2eigen(expt, extrema_layer);
+    map.add("extrema", extrema_layer);
+    // sensor_msgs::PointCloud2 pc2;
+    // pcl::toROSMsg(*msg, pc2);
+    
+
 }
 void SDF2D::generateSampleGridMap(grid_map::GridMap& map, std::string& elevationLayer_){
     // generate grid_map

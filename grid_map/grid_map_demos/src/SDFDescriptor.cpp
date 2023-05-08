@@ -15,17 +15,18 @@ void SDFDescriptor::toTXT(const std::vector<cv::Mat>& src, const std::vector<std
     }
 }
 
-void SDFDescriptor::find_extrema_points(cv::Mat& sdf, cv::Mat& gauss, std::vector<cv::Point>& extrema_points, cv::Mat& extrema){
-    extrema = cv::Mat::zeros(gauss.size(), CV_32FC1);
+void SDFDescriptor::find_extrema_points(const cv::Mat& src_sdf, const cv::Mat& src_doh, std::vector<cv::Point>& dst_extrema_points){
+    // dst_extrema_full = cv::Mat::zeros(src_doh.size(), CV_32FC1);
     // loop through each pixel in the image
-    for(int i = 1; i < gauss.rows - 1; i++){
-        for(int j = 1; j < gauss.cols - 1; j++){
+    cv::Mat extrema = cv::Mat::zeros(src_doh.size(), CV_8UC1);
+    for(int i = 1; i < src_doh.rows - 1; i++){
+        for(int j = 1; j < src_doh.cols - 1; j++){
             // check if the current pixel is an extremum
-            float value = gauss.at<float>(i, j);
+            float value = src_doh.at<float>(i, j);
             bool is_extremum = true;
             for(int k = -1; k <= 1; k++){
                 for(int l = -1; l <= 1; l++){
-                    if(value < gauss.at<float>(i+k, j+l)){
+                    if(value < src_doh.at<float>(i+k, j+l)){
                         is_extremum = false;
                         break;
                     }
@@ -35,14 +36,39 @@ void SDFDescriptor::find_extrema_points(cv::Mat& sdf, cv::Mat& gauss, std::vecto
                 }
             }
             if(is_extremum){
-                extrema.at<float>(i, j) = sdf.at<float>(i, j);
+                // dst_extrema_full.at<float>(i, j) = src_sdf.at<float>(i, j);
+                extrema.at<uchar>(i, j) = 255;
             }
         }
     }
-    cv::findNonZero(extrema, extrema_points);
+    cv::findNonZero(extrema, dst_extrema_points);
+}
+/// @brief Classify extrema points by the sign of eigen value.
+/// @param src_extrema_points 
+/// @param src_eigenvalue1 
+/// @param src_eigenvalue2 
+/// @param dst 
+void SDFDescriptor::classify_extrema_points(const std::vector<cv::Point>& src_extrema_points, 
+                                            cv::Mat& src_eigenvalue1 , cv::Mat& src_eigenvalue2, 
+                                            std::vector<std::vector<cv::Point>>& dst){
+    dst = std::vector<std::vector<cv::Point>>(3);
+    // 0: extrema max; 1: extrema min, 2: extrema saddle
+    for(const auto& pt: src_extrema_points){
+        float ev1 = src_eigenvalue1.at<float>(pt.x, pt.y);
+        float ev2 = src_eigenvalue2.at<float>(pt.x, pt.y);
+        if(ev1 < 0 && ev2 < 0){
+            dst[0].push_back(pt);
+        }
+        if(ev1 > 0 && ev2 > 0){
+            dst[1].push_back(pt);
+        }
+        if(ev1 * ev2 < 0){
+            dst[2].push_back(pt);
+        }
+    }
 }
 
-void SDFDescriptor::calculate_gaussian_curvature(const cv::Mat& src, int ksize, cv::Mat& dst){
+void SDFDescriptor::detect_gaussian_curvature_and_eigen(const cv::Mat& src, int ksize, cv::Mat& dst_doh, cv::Mat& dst_eigenvalue1 , cv::Mat& dst_eigenvalue2){
     cv::Mat gaussBlur, dx, dy, dxx, dxy, dyy;
     // 1. gaussian blue
     cv::GaussianBlur(src, gaussBlur, cv::Size(5, 5), 0, 0);
@@ -55,7 +81,10 @@ void SDFDescriptor::calculate_gaussian_curvature(const cv::Mat& src, int ksize, 
     cv::Sobel(dy, dyy, -1, 0, 1, ksize);
 
     // 3. DoH & gaussian curvature & eigen
-    dst.create(src.size(), CV_32FC1);
+    dst_doh.create(src.size(), CV_32FC1);
+    dst_eigenvalue1.create(src.size(), CV_32FC1);
+    dst_eigenvalue2.create(src.size(), CV_32FC1);
+
     for(int i = 0; i < src.rows; i++){
         for(int j = 0; j < src.cols; j++){
             float fx = dx.at<float>(i, j);
@@ -66,7 +95,7 @@ void SDFDescriptor::calculate_gaussian_curvature(const cv::Mat& src, int ksize, 
             // DoH
             float doh = fxx * fyy - fxy * fxy;
             // gaussian curvature
-            float k = doh / pow(fx * fx + fy * fy + 1e-8, 2);
+            // float k = doh / pow(fx * fx + fy * fy + 1e-8, 2);
 
             // eigen value & eigen vector
             cv::Mat hessianAtEachPoint_(2, 2, CV_32FC1);
@@ -76,10 +105,14 @@ void SDFDescriptor::calculate_gaussian_curvature(const cv::Mat& src, int ksize, 
             hessianAtEachPoint_.at<float>(1, 1) = fyy;
             cv::Mat eigenValue_, eigenVector_;
             cv::eigen(hessianAtEachPoint_, eigenValue_, eigenVector_);
-            float gaussCurv_ = eigenValue_.at<float>(0, 0) * eigenValue_.at<float>(1, 0);
+            // float gaussCurv_ = eigenValue_.at<float>(0, 0) * eigenValue_.at<float>(1, 0);
             // gaussianCurvature_.at<float>(i, j) = gaussCurv_;
 
-            dst.at<float>(i, j) = k;
+            dst_doh.at<float>(i, j) = doh;
+            dst_eigenvalue1.at<float>(i, j) = eigenValue_.at<float>(0, 0);
+            dst_eigenvalue2.at<float>(i, j) = eigenValue_.at<float>(1, 0);
+
+            // dst.at<float>(i, j) = k;
             // dst.at<float>(i, j) = gaussCurv_;
         }
     }
@@ -89,32 +122,41 @@ void SDFDescriptor::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     cv_bridge::CvImagePtr cv_ptr;
     try{
         cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_32FC1);
-        ROS_INFO_THROTTLE(1.0, "Callback...");
+        ROS_INFO_THROTTLE(1.0, "[Callback] SDF Descriptor...");
     } catch (cv_bridge::Exception& e){
         ROS_ERROR("cv_bridge exception: %s", e.what());
         return ;
     }
 
-    cv::Mat sdfSrc_ = cv_ptr->image;
-    cv::Mat gaussCurv_, extrema_;
+    cv::Mat src_sdf_ = cv_ptr->image;
+    cv::Mat doh_, eigenValue1_, eigenValue2_;
+    cv::Mat extrema_full_, extrema_max_, extrema_min_, extrema_saddle_; 
     std::vector<cv::Point> extrema_points_;
 
-    calculate_gaussian_curvature(sdfSrc_, 3, gaussCurv_);
-    find_extrema_points(sdfSrc_, gaussCurv_, extrema_points_, extrema_);
+    detect_gaussian_curvature_and_eigen(src_sdf_, 3, doh_, eigenValue1_, eigenValue2_);
+    find_extrema_points(src_sdf_, doh_, extrema_points_);
 
-    sensor_msgs::ImagePtr msg_extrema_points;
-    msg_extrema_points = cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::TYPE_32FC1, extrema_).toImageMsg();
-    // publish back to map node
-    ipub_.publish(msg_extrema_points);
+    sensor_msgs::PointCloud msg_extrema_points;
+    for(const auto& pt : extrema_points_){
+        geometry_msgs::Point32 point32;
+        point32.x = pt.x;
+        point32.y = pt.y;
+        msg_extrema_points.points.push_back(point32);
+    }
+    pub_extrema_points_.publish(msg_extrema_points);
+    // sensor_msgs::ImagePtr msg_extrema_points;
+    // msg_extrema_points = cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::TYPE_32FC1, extrema_full_).toImageMsg();
+    // // publish back to map node
+    // ipub_.publish(msg_extrema_points);
 
-    // cv::imshow("sdf message", sdfSrc_);
+    // cv::imshow("sdf message", src_sdf_);
     // cv::imshow("Gaussian Curvature", gaussCurv_);
     // cv::waitKey(3);
 
     if(once_ == 0){
         once_++;
-        std::vector<cv::Mat> data_{gaussCurv_, extrema_};
-        std::vector<std::string> filenames_{"/home/yuxuanzhao/Desktop/gaussCurv.txt", "/home/yuxuanzhao/Desktop/extrema.txt"};
+        std::vector<cv::Mat> data_{doh_};
+        std::vector<std::string> filenames_{"/home/yuxuanzhao/Desktop/gaussCurv.txt"};
         toTXT(data_, filenames_);
     }
 }
