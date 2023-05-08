@@ -25,6 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
   filters
   std_msgs
   image_transport
+  pcl_ros
 )
 
 find_package(OpenCV REQUIRED
@@ -34,6 +35,7 @@ find_package(OpenCV REQUIRED
 )
 find_package(OpenCV REQUIRED)
 find_package(octomap REQUIRED)
+find_package(PCL REQUIRED)
 
 ###################################
 ## catkin specific configuration ##
@@ -62,6 +64,14 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
   ${OCTOMAP_INCLUDE_DIR}
+  ${PCL_INCLUDE_DIRS}
+)
+
+link_directories(
+  ${PCL_LIBRARY_DIRS}
+)
+add_definitions(
+  ${PCL_DEFINITIONS}
 )
 
 ## Declare a cpp executable
@@ -149,7 +159,7 @@ target_link_libraries(
 
 target_link_libraries(
   my_sdf_demo
-  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES}
 )
 
 target_link_libraries(
