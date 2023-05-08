@@ -130,28 +130,32 @@ void SDFDescriptor::imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
     cv::Mat src_sdf_ = cv_ptr->image;
     cv::Mat doh_, eigenValue1_, eigenValue2_;
-    cv::Mat extrema_full_, extrema_max_, extrema_min_, extrema_saddle_; 
     std::vector<cv::Point> extrema_points_;
+    std::vector<std::vector<cv::Point>> classified_extrema_points_;
 
     detect_gaussian_curvature_and_eigen(src_sdf_, 3, doh_, eigenValue1_, eigenValue2_);
     find_extrema_points(src_sdf_, doh_, extrema_points_);
+    classify_extrema_points(extrema_points_, eigenValue1_, eigenValue2_, classified_extrema_points_);
 
     sensor_msgs::PointCloud msg_extrema_points;
-    for(const auto& pt : extrema_points_){
-        geometry_msgs::Point32 point32;
-        point32.x = pt.x;
-        point32.y = pt.y;
-        msg_extrema_points.points.push_back(point32);
+    int offset_ = 1;
+    for(int i = 0; i < 3; i++){
+        for(const auto& pt: classified_extrema_points_[i]){
+            geometry_msgs::Point32 point32;
+            point32.x = pt.x;
+            point32.y = pt.y;
+            point32.z = float(i+offset_);
+            msg_extrema_points.points.push_back(point32);
+        }
     }
-    pub_extrema_points_.publish(msg_extrema_points);
-    // sensor_msgs::ImagePtr msg_extrema_points;
-    // msg_extrema_points = cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::TYPE_32FC1, extrema_full_).toImageMsg();
-    // // publish back to map node
-    // ipub_.publish(msg_extrema_points);
 
-    // cv::imshow("sdf message", src_sdf_);
-    // cv::imshow("Gaussian Curvature", gaussCurv_);
-    // cv::waitKey(3);
+    // for(const auto& pt : extrema_points_){
+    //     geometry_msgs::Point32 point32;
+    //     point32.x = pt.x;
+    //     point32.y = pt.y;
+    //     msg_extrema_points.points.push_back(point32);
+    // }
+    pub_extrema_points_.publish(msg_extrema_points);
 
     if(once_ == 0){
         once_++;

@@ -12,10 +12,18 @@ grid_map_visualizations:
     type: point_cloud
     params:
       layer: sdf2d
-  - name: extrema_points
+  - name: extrema_max
     type: point_cloud
     params:
-      layer: extrema
+      layer: extrema_max
+  - name: extrema_min
+    type: point_cloud
+    params:
+      layer: extrema_min
+  - name: extrema_saddle
+    type: point_cloud
+    params:
+      layer: extrema_saddle
   - name: map_region
     type: map_region
     params:

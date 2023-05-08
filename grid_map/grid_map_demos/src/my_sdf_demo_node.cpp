@@ -68,7 +68,7 @@ public:
         imgTransPub = imgTrans.advertise("signed_distance", 1);
         // imgTransSub = imgTrans.subscribe("extrema_points", 1, boost::bind(&SDF2D::callback, this, _1));
 
-        sub_extrema_points_ = nh.subscribe<sensor_msgs::PointCloud>("extrema_points", 1, boost::bind(&SDF2D::callback, this, _1));
+        sub_extrema_points_ = nh.subscribe<sensor_msgs::PointCloud>("extrema_points", 10, boost::bind(&SDF2D::callback, this, _1));
     }
     void generateSampleGridMap(grid_map::GridMap&, std::string&);
     void callback(const sensor_msgs::PointCloud::ConstPtr& msg);
@@ -95,7 +95,7 @@ int main(int argc, char **argv){
 
     SDF2D sdf2d;
 
-    ros::Rate rate(30.0);
+    ros::Rate rate(10.0);
     while(sdf2d.nh.ok()){
         // elevation
         ros::Time time = ros::Time::now();   
@@ -118,17 +118,29 @@ int main(int argc, char **argv){
 }
 void SDF2D::callback(const sensor_msgs::PointCloud::ConstPtr& msg){
     ROS_INFO("[Callback] SDF2D...");
-    cv::Mat expt = cv::Mat::zeros(rows_, cols_, CV_32FC1);
+    int offset_ = 1;
+    cv::Mat data_extrema_max = cv::Mat::zeros(rows_, cols_, CV_32FC1);
+    cv::Mat data_extrema_min = cv::Mat::zeros(rows_, cols_, CV_32FC1);
+    cv::Mat data_extrema_saddle = cv::Mat::zeros(rows_, cols_, CV_32FC1);
     for(const auto& pt : msg->points){
-        expt.at<float>(pt.x, pt.y) = map.at("sdf2d", Index(pt.x, pt.y));
+        float value = map.at("sdf2d", Index(pt.x, pt.y));
+        if(pt.z - offset_ == 0){
+            data_extrema_max.at<float>(pt.x, pt.y) = value;
+        }
+        if(pt.z - offset_ == 1){
+            data_extrema_min.at<float>(pt.x, pt.y) = value;
+        }
+        if(pt.z - offset_ == 2){
+            data_extrema_saddle.at<float>(pt.x, pt.y) = value;
+        }
     }
-    Eigen::Matrix<float, -1, -1> extrema_layer;
-    cv::cv2eigen(expt, extrema_layer);
-    map.add("extrema", extrema_layer);
-    // sensor_msgs::PointCloud2 pc2;
-    // pcl::toROSMsg(*msg, pc2);
-    
-
+    Eigen::Matrix<float, -1, -1> layer_extrema_max, layer_extrema_min, layer_extrema_saddle;
+    cv::cv2eigen(data_extrema_max, layer_extrema_max);
+    cv::cv2eigen(data_extrema_min, layer_extrema_min);
+    cv::cv2eigen(data_extrema_saddle, layer_extrema_saddle);
+    map.add("extrema_max", layer_extrema_max);
+    map.add("extrema_min", layer_extrema_min);
+    map.add("extrema_saddle", layer_extrema_saddle);
 }
 void SDF2D::generateSampleGridMap(grid_map::GridMap& map, std::string& elevationLayer_){
     // generate grid_map
