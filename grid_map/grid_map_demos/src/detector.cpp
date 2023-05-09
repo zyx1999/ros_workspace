@@ -2,7 +2,6 @@
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "detector");
-    ros::NodeHandle nh("~");
 
     // cv::namedWindow("sdf message", CV_WINDOW_NORMAL);
     // cv::namedWindow("Gaussian Curvature", CV_WINDOW_NORMAL);

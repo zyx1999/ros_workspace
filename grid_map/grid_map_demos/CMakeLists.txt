@@ -26,6 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   image_transport
   pcl_ros
+  message_generation
 )
 
 find_package(OpenCV REQUIRED
@@ -36,6 +37,19 @@ find_package(OpenCV REQUIRED
 find_package(OpenCV REQUIRED)
 find_package(octomap REQUIRED)
 find_package(PCL REQUIRED)
+
+## Generate services in the 'srv' folder
+add_service_files(
+  FILES
+  sdfDetect.srv
+)
+
+## Generate added messages and services with any dependencies listed here
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  sensor_msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -48,9 +62,7 @@ find_package(PCL REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS
-#  DEPENDS system_lib
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs message_runtime 
 )
 
 ###########

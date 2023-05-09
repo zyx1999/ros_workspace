@@ -118,6 +118,35 @@ void SDFDescriptor::detect_gaussian_curvature_and_eigen(const cv::Mat& src, int 
     }
 }
 
+bool SDFDescriptor::srvCallback(grid_map_demos::sdfDetect::Request& req, grid_map_demos::sdfDetect::Response& res){
+    cv_bridge::CvImagePtr cv_ptr;
+    cv_ptr = cv_bridge::toCvCopy(req.sdf_map, sensor_msgs::image_encodings::TYPE_32FC1);
+
+    cv::Mat src_sdf_ = cv_ptr->image;
+    cv::Mat doh_, eigenValue1_, eigenValue2_;
+    std::vector<cv::Point> extrema_points_;
+    std::vector<std::vector<cv::Point>> classified_extrema_points_;
+
+    detect_gaussian_curvature_and_eigen(src_sdf_, 3, doh_, eigenValue1_, eigenValue2_);
+    find_extrema_points(src_sdf_, doh_, extrema_points_);
+    classify_extrema_points(extrema_points_, eigenValue1_, eigenValue2_, classified_extrema_points_);
+
+    sensor_msgs::PointCloud msg_extrema_points;
+    int offset_ = 1;
+    for(int i = 0; i < 3; i++){
+        for(const auto& pt: classified_extrema_points_[i]){
+            geometry_msgs::Point32 point32;
+            point32.x = pt.x;
+            point32.y = pt.y;
+            point32.z = float(i+offset_);
+            msg_extrema_points.points.push_back(point32);
+        }
+    }
+    res.keypoints = msg_extrema_points;
+    return true;
+}
+
+
 void SDFDescriptor::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     cv_bridge::CvImagePtr cv_ptr;
     try{

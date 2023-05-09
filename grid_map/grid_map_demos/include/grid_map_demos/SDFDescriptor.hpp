@@ -11,14 +11,18 @@
 #include <fstream>
 #include <geometry_msgs/Point32.h>
 #include <sensor_msgs/PointCloud.h>
+#include "grid_map_demos/sdfDetect.h"
 
+// bool srvCallback(grid_map_demos::sdfDetect::Request& req, grid_map_demos::sdfDetect::Response& res);
 class SDFDescriptor{
 public:
     SDFDescriptor(): it_(nh_){
         isub_ = it_.subscribe("/my_sdf_demo/signed_distance", 1, &SDFDescriptor::imageCallback, this);
         // ipub_ = it_.advertise("/my_sdf_demo/extrema_points", 1);
         pub_extrema_points_ = nh_.advertise<sensor_msgs::PointCloud>("/my_sdf_demo/extrema_points", 1);
+        service_ = nh_.advertiseService("/sdf_service", &SDFDescriptor::srvCallback, this);
     }
+    bool srvCallback(grid_map_demos::sdfDetect::Request& req, grid_map_demos::sdfDetect::Response& res);
     void imageCallback(const sensor_msgs::ImageConstPtr&);
     void toTXT(const std::vector<cv::Mat>&, const std::vector<std::string>&);
     void detect_gaussian_curvature_and_eigen(const cv::Mat& src, int ksize, cv::Mat& dst_doh, cv::Mat& dst_eigenvalue1 , cv::Mat& dst_eigenvalue2);
@@ -30,5 +34,6 @@ private:
     image_transport::Subscriber isub_;
     image_transport::Publisher ipub_;
     ros::Publisher pub_extrema_points_;
+    ros::ServiceServer service_;
     int once_{0};
 };

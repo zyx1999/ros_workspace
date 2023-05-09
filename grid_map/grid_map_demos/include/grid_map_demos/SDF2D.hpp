@@ -15,6 +15,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/opencv.hpp>
 #include <pcl_conversions/pcl_conversions.h>
+#include "grid_map_demos/sdfDetect.h"
 
 class SDF2D{
 public:
@@ -23,6 +24,13 @@ public:
     void to2DSignedDistanceMap(grid_map::Matrix& signedDistance);
     void generateSampleGridMap(grid_map::GridMap&, std::string&);
     void publishSignedDistanceMsg(const grid_map::Matrix& signedDistance_);
+
+    /*!
+     * Call Server to extract the sdf keypoints from sdf map.
+     * The type of param is grid_map::Matrix, and the expected return is a list of sdf keypoints(classified).
+     * @param signedDistance_ 
+     */
+    void callServer(const grid_map::Matrix& signedDistance_);
     void callback(const sensor_msgs::PointCloud::ConstPtr& msg);
 // private:
     float resolution_;
