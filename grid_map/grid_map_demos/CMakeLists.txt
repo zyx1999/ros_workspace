@@ -81,6 +81,7 @@ add_executable(detector
 )
 
 add_executable(my_sdf_demo
+  src/SDF2D.cpp
   src/my_sdf_demo_node.cpp
 )
 
