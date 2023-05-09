@@ -1,6 +1,30 @@
 #include "grid_map_demos/SDF2D.hpp"
 
+
 SDF2D::SDF2D(): nh("~"), elevationLayer_("elevation"), resolution_(0.5), pointcloudTopic("pointcloud_topic"){
+    plainMapInit();
+
+    generateSampleGridMap(map, elevationLayer_);
+    
+    grid_map::Matrix signedDistance_;
+    to2DSignedDistanceMap(signedDistance_);
+
+    publishSignedDistanceMsg(signedDistance_);
+}
+
+void SDF2D::publishSignedDistanceMsg(const grid_map::Matrix& signedDistance_){
+    // publish to image_converter with topic: /my_sdf_demo/signed_distance/image_topics
+    cv::Mat signedDistanceMat_;
+    cv::eigen2cv(signedDistance_, signedDistanceMat_);
+    signedDistanceMsg_ = cv_bridge::CvImage(std_msgs::Header(), 
+        sensor_msgs::image_encodings::TYPE_32FC1, signedDistanceMat_).toImageMsg();
+    image_transport::ImageTransport imgTrans(nh);
+    imgTransPub = imgTrans.advertise("signed_distance", 1);
+    // imgTransSub = imgTrans.subscribe("extrema_points", 1, boost::bind(&SDF2D::callback, this, _1));
+    sub_extrema_points_ = nh.subscribe<sensor_msgs::PointCloud>("extrema_points", 10, boost::bind(&SDF2D::callback, this, _1));
+}
+
+void SDF2D::plainMapInit(){
     publisher = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
     // map init.
     map.add(elevationLayer_);
@@ -12,19 +36,9 @@ SDF2D::SDF2D(): nh("~"), elevationLayer_("elevation"), resolution_(0.5), pointcl
     map.getPosition().x(), map.getPosition().y(), map.getFrameId().c_str());
     rows_ = map.getSize()(0);
     cols_ = map.getSize()(1);
-    // sdf init.
-    pointcloudPublisher_ = nh.advertise<sensor_msgs::PointCloud2>(pointcloudTopic + "/full_sdf", 1);
-    freespacePublisher_ = nh.advertise<sensor_msgs::PointCloud2>(pointcloudTopic + "/free_space", 1);
-    occupiedPublisher_ = nh.advertise<sensor_msgs::PointCloud2>(pointcloudTopic + "/occupied_space", 1);
+}
 
-    generateSampleGridMap(map, elevationLayer_);
-
-    // // Add noise layer (using Eigen operators).
-    // map.add("noise", 0.1 * Matrix::Random(map.getSize()(0), map.getSize()(1)));
-    // // Add elevation_noisy layer
-    // map.add("elevation_noisy", map.get("elevation") + map["noise"]);
-    // auto& elevationData = map.get("elevation_noisy");
-    
+void SDF2D::to2DSignedDistanceMap(grid_map::Matrix& signedDistance){
     // elevationData is Matrix
     auto& elevationData = map.get(elevationLayer_);
 
@@ -37,20 +51,10 @@ SDF2D::SDF2D(): nh("~"), elevationLayer_("elevation"), resolution_(0.5), pointcl
 
     // Generate 2D SDF.
     Eigen::Matrix<bool, -1, -1> occupancy = elevationData.unaryExpr([=](float val) { return val > 0.5; });
-    auto signedDistance = grid_map::signed_distance_field::signedDistanceFromOccupancy(occupancy, resolution_);
+    signedDistance = grid_map::signed_distance_field::signedDistanceFromOccupancy(occupancy, resolution_);
     map.add("sdf2d", signedDistance);
-
-    // publish to image_converter with topic: /my_sdf_demo/signed_distance/image_topics
-    cv::Mat signedDistanceMat_;
-    cv::eigen2cv(signedDistance, signedDistanceMat_);
-    signedDistanceMsg_ = cv_bridge::CvImage(std_msgs::Header(), 
-        sensor_msgs::image_encodings::TYPE_32FC1, signedDistanceMat_).toImageMsg();
-    image_transport::ImageTransport imgTrans(nh);
-    imgTransPub = imgTrans.advertise("signed_distance", 1);
-    // imgTransSub = imgTrans.subscribe("extrema_points", 1, boost::bind(&SDF2D::callback, this, _1));
-
-    sub_extrema_points_ = nh.subscribe<sensor_msgs::PointCloud>("extrema_points", 10, boost::bind(&SDF2D::callback, this, _1));
 }
+
 void SDF2D::callback(const sensor_msgs::PointCloud::ConstPtr& msg){
     ROS_INFO("[Callback] SDF2D...");
     int offset_ = 1;

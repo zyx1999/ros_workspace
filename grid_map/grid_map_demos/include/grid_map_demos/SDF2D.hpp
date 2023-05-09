@@ -19,21 +19,24 @@
 class SDF2D{
 public:
     SDF2D();
+    void plainMapInit();
+    void to2DSignedDistanceMap(grid_map::Matrix& signedDistance);
     void generateSampleGridMap(grid_map::GridMap&, std::string&);
+    void publishSignedDistanceMsg(const grid_map::Matrix& signedDistance_);
     void callback(const sensor_msgs::PointCloud::ConstPtr& msg);
 // private:
-    ros::NodeHandle nh;
-    ros::Publisher publisher;
-    std::string elevationLayer_;
-    grid_map::GridMap map;
     float resolution_;
+    int rows_{0}, cols_{0};
+    std::string elevationLayer_;
     std::string pointcloudTopic;
+    ros::NodeHandle nh;
+    grid_map::GridMap map;
+    ros::Publisher publisher;
     ros::Publisher pointcloudPublisher_;
     ros::Publisher freespacePublisher_;
     ros::Publisher occupiedPublisher_;
+    ros::Subscriber sub_extrema_points_;
     sensor_msgs::ImagePtr signedDistanceMsg_;
     image_transport::Publisher imgTransPub;
     image_transport::Subscriber imgTransSub;
-    ros::Subscriber sub_extrema_points_;
-    int rows_{0}, cols_{0};
 };
