@@ -51,6 +51,9 @@ bool PointCloudVisualization::visualize(const grid_map::GridMap& map)
   sensor_msgs::PointCloud2 msg_cloud;
   grid_map::GridMapRosConverter::toPointCloud(map, layer_, msg_cloud);
 
+  // only save the keypoints with z-axis != 0.
+  // Since we cannot modify the msg, therefore we should convert ros msg into pcl::PointCloud to filter the points
+  // then turn the pcl::PointCloud back to ros msg.
   if(filterZero_){
     ROS_INFO("filterZero=[TRUE]");
     pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud_ptr(new pcl::PointCloud<pcl::PointXYZ>);
