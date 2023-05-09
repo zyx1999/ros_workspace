@@ -1,7 +1,7 @@
 #include "grid_map_demos/SDF2D.hpp"
 
 
-SDF2D::SDF2D(): nh("~"), elevationLayer_("elevation"), resolution_(0.5), pointcloudTopic("pointcloud_topic"){
+SDF2D::SDF2D(ros::NodeHandle& nh): nh_(nh), elevationLayer_("elevation"), resolution_(0.5), pointcloudTopic("pointcloud_topic"){
     plainMapInit();
 
     generateSampleGridMap(map, elevationLayer_);
@@ -18,7 +18,7 @@ void SDF2D::callServer(const grid_map::Matrix& signedDistance_){
     cv::eigen2cv(signedDistance_, signedDistanceMat_);
 
     ros::service::waitForService("/sdf_service");
-    ros::ServiceClient client = nh.serviceClient<grid_map_demos::sdfDetect>("/sdf_service");
+    ros::ServiceClient client = nh_.serviceClient<grid_map_demos::sdfDetect>("/sdf_service");
     sensor_msgs::ImagePtr msg_sdf = cv_bridge::CvImage(std_msgs::Header(), 
         sensor_msgs::image_encodings::TYPE_32FC1, signedDistanceMat_).toImageMsg();
     grid_map_demos::sdfDetect srv;
@@ -58,13 +58,6 @@ void SDF2D::callServer(const grid_map::Matrix& signedDistance_){
     map.add("extrema_saddle", layer_extrema_saddle);
     map.add("extrema_critical", layer_extrema_critical);
 
-    // cv::Mat data_ = cv::Mat::zeros(rows_, cols_, CV_32FC1);
-    // for(const auto& pt: keypoints.points){
-    //     data_.at<float>(pt.x, pt.y) = map.at("sdf2d", grid_map::Index(pt.x, pt.y));
-    // }
-    // Eigen::Matrix<float, -1, -1> out_;
-    // cv::cv2eigen(data_, out_);
-    // map.add("extrema_max", out_);
 }
 
 void SDF2D::publishSignedDistanceMsg(const grid_map::Matrix& signedDistance_){
@@ -73,14 +66,14 @@ void SDF2D::publishSignedDistanceMsg(const grid_map::Matrix& signedDistance_){
     cv::eigen2cv(signedDistance_, signedDistanceMat_);
     signedDistanceMsg_ = cv_bridge::CvImage(std_msgs::Header(), 
         sensor_msgs::image_encodings::TYPE_32FC1, signedDistanceMat_).toImageMsg();
-    image_transport::ImageTransport imgTrans(nh);
+    image_transport::ImageTransport imgTrans(nh_);
     imgTransPub = imgTrans.advertise("signed_distance", 1);
     // imgTransSub = imgTrans.subscribe("extrema_points", 1, boost::bind(&SDF2D::callback, this, _1));
-    sub_extrema_points_ = nh.subscribe<sensor_msgs::PointCloud>("extrema_points", 10, boost::bind(&SDF2D::callback, this, _1));
+    sub_extrema_points_ = nh_.subscribe<sensor_msgs::PointCloud>("extrema_points", 10, boost::bind(&SDF2D::callback, this, _1));
 }
 
 void SDF2D::plainMapInit(){
-    publisher = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
+    publisher = nh_.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
     // map init.
     map.add(elevationLayer_);
     map.setFrameId("map");

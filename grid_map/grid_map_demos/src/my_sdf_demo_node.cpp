@@ -5,11 +5,13 @@ using namespace grid_map;
 
 int main(int argc, char **argv){
     ros::init(argc, argv, "my_sdf_demo");
-
-    SDF2D sdf2d;
+    
+    ros::NodeHandle nh("~");
+    
+    SDF2D sdf2d(nh);
 
     ros::Rate rate(10.0);
-    while(sdf2d.nh.ok()){
+    while(sdf2d.nh_.ok()){
         // elevation
         ros::Time time = ros::Time::now();   
         sdf2d.map.setTimestamp(time.toNSec());

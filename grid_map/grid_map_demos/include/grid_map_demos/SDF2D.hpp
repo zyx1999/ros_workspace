@@ -19,17 +19,11 @@
 
 class SDF2D{
 public:
-    SDF2D();
+    SDF2D(ros::NodeHandle& nh);
     void plainMapInit();
     void to2DSignedDistanceMap(grid_map::Matrix& signedDistance);
     void generateSampleGridMap(grid_map::GridMap&, std::string&);
     void publishSignedDistanceMsg(const grid_map::Matrix& signedDistance_);
-
-    /*!
-     * Call Server to extract the sdf keypoints from sdf map.
-     * The type of param is grid_map::Matrix, and the expected return is a list of sdf keypoints(classified).
-     * @param signedDistance_ 
-     */
     void callServer(const grid_map::Matrix& signedDistance_);
     void callback(const sensor_msgs::PointCloud::ConstPtr& msg);
 // private:
@@ -37,7 +31,7 @@ public:
     int rows_{0}, cols_{0};
     std::string elevationLayer_;
     std::string pointcloudTopic;
-    ros::NodeHandle nh;
+    ros::NodeHandle nh_;
     grid_map::GridMap map;
     ros::Publisher publisher;
     ros::Publisher pointcloudPublisher_;

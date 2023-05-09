@@ -153,30 +153,6 @@ bool SDFDescriptor::srvCallback(grid_map_demos::sdfDetect::Request& req, grid_ma
         }
     }
     res.keypoints = msg_extrema_points;
-
-    // cv::Mat src = cv_ptr->image;
-    // sensor_msgs::PointCloud out;
-    // for(const auto& pt : classified_extrema_points_[3]){
-    //     geometry_msgs::Point32 pt32;
-    //     pt32.x = pt.x;
-    //     pt32.y = pt.y;
-    //     out.points.push_back(pt32);
-    // }
-    // for(const auto& pt : extrema_points_){
-    //     geometry_msgs::Point32 pt32;
-    //     pt32.x = pt.x;
-    //     pt32.y = pt.y;
-    //     out.points.push_back(pt32);
-    // }
-    // for(int i = 0; i < src.rows; i++){
-    //     for(int j = 0; j < src.cols; j++){
-    //         geometry_msgs::Point32 pt32;
-    //         pt32.x = i;
-    //         pt32.y = j;
-    //         out.points.push_back(pt32);
-    //     }
-    // }
-    // res.keypoints = out;
     return true;
 }
 
@@ -211,13 +187,6 @@ void SDFDescriptor::imageCallback(const sensor_msgs::ImageConstPtr& msg){
             msg_extrema_points.points.push_back(point32);
         }
     }
-
-    // for(const auto& pt : extrema_points_){
-    //     geometry_msgs::Point32 point32;
-    //     point32.x = pt.x;
-    //     point32.y = pt.y;
-    //     msg_extrema_points.points.push_back(point32);
-    // }
     pub_extrema_points_.publish(msg_extrema_points);
 
     if(once_ == 0){
