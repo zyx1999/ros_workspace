@@ -4,6 +4,7 @@ grid_map_visualizations:
     type: point_cloud
     params:
       layer: elevation
+      filterZero: false
   # - name: elevation_noisy
   #   type: point_cloud
   #   params:
@@ -12,22 +13,27 @@ grid_map_visualizations:
     type: point_cloud
     params:
       layer: sdf2d
+      filterZero: false
   - name: extrema_max
     type: point_cloud
     params:
       layer: extrema_max
+      filterZero: true
   - name: extrema_min
     type: point_cloud
     params:
       layer: extrema_min
+      filterZero: true
   - name: extrema_saddle
     type: point_cloud
     params:
       layer: extrema_saddle
+      filterZero: true
   - name: extrema_critical
     type: point_cloud
     params:
       layer: extrema_critical
+      filterZero: true
   - name: map_region
     type: map_region
     params:

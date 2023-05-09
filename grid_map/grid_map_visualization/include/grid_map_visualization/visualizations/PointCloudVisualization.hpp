@@ -14,6 +14,11 @@
 // ROS
 #include <ros/ros.h>
 
+// PCL
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+
 namespace grid_map_visualization {
 
 /*!
@@ -57,6 +62,9 @@ class PointCloudVisualization : public VisualizationBase
  private:
   //! Type that is transformed to points.
   std::string layer_;
+
+  //! if this layer_ should filter points with value 0.
+  bool filterZero_;
 };
 
 } /* namespace */

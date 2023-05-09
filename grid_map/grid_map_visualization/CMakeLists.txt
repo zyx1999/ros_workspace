@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.5.1)
 project(grid_map_visualization)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_STANDARD 14)
+# set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 add_compile_options(-Wall -Wextra -Wpedantic)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -15,8 +16,9 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
   sensor_msgs
   nav_msgs
+  pcl_ros
 )
-
+find_package(PCL REQUIRED)
 ## System dependencies are found with CMake's conventions
 #find_package(Eigen3 REQUIRED)
 
@@ -55,7 +57,16 @@ include_directories(
   SYSTEM
     ${catkin_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIR}
+    ${PCL_INCLUDE_DIRS}
 )
+
+link_directories(
+  ${PCL_LIBRARY_DIRS}
+)
+add_definitions(
+  ${PCL_DEFINITIONS}
+)
+
 
 ## Declare a cpp library
 # add_library(${PROJECT_NAME}
@@ -85,6 +96,7 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
 )
 
 #############

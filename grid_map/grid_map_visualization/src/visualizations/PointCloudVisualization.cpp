@@ -29,6 +29,9 @@ bool PointCloudVisualization::readParameters(XmlRpc::XmlRpcValue& config)
     ROS_ERROR("PointCloudVisualization with name '%s' did not find a 'layer' parameter.", name_.c_str());
     return false;
   }
+  if (!getParam("filterZero", filterZero_)){
+    ROS_ERROR("PointCloudVisualization with name '%s' did not find a 'filterZero' parameter.", name_.c_str());
+  }
   return true;
 }
 
@@ -45,9 +48,29 @@ bool PointCloudVisualization::visualize(const grid_map::GridMap& map)
     ROS_WARN_STREAM("PointCloudVisualization::visualize: No grid map layer with name '" << layer_ << "' found.");
     return false;
   }
-  sensor_msgs::PointCloud2 pointCloud;
-  grid_map::GridMapRosConverter::toPointCloud(map, layer_, pointCloud);
-  publisher_.publish(pointCloud);
+  sensor_msgs::PointCloud2 msg_cloud;
+  grid_map::GridMapRosConverter::toPointCloud(map, layer_, msg_cloud);
+
+  if(filterZero_){
+    ROS_INFO("filterZero=[TRUE]");
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud_ptr(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud_tmp_ptr(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::fromROSMsg(msg_cloud, *pcl_cloud_ptr);
+    for(const auto& pt: *pcl_cloud_ptr){
+      if(pt.z != 0){
+        pcl_cloud_tmp_ptr->push_back(pt);
+      }
+    }
+    pcl_cloud_ptr->points.clear();
+    for(const auto& pt: *pcl_cloud_tmp_ptr){
+      pcl_cloud_ptr->push_back(pt);
+    }
+    sensor_msgs::PointCloud2 msg_filtered_cloud;
+    pcl::toROSMsg(*pcl_cloud_ptr, msg_filtered_cloud);
+    publisher_.publish(msg_filtered_cloud);
+  } else {
+    publisher_.publish(msg_cloud);
+  }
   return true;
 }
 
