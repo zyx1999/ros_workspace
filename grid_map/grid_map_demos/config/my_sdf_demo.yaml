@@ -24,6 +24,10 @@ grid_map_visualizations:
     type: point_cloud
     params:
       layer: extrema_saddle
+  - name: extrema_critical
+    type: point_cloud
+    params:
+      layer: extrema_critical
   - name: map_region
     type: map_region
     params:

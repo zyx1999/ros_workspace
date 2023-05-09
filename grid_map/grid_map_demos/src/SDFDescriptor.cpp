@@ -41,7 +41,9 @@ void SDFDescriptor::find_extrema_points(const cv::Mat& src_sdf, const cv::Mat& s
             }
         }
     }
-    cv::findNonZero(extrema, dst_extrema_points);
+    cv::Mat extrema_trans;
+    cv::transpose(extrema, extrema_trans);
+    cv::findNonZero(extrema_trans, dst_extrema_points);
 }
 /// @brief Classify extrema points by the sign of eigen value.
 /// @param src_extrema_points 
@@ -51,19 +53,26 @@ void SDFDescriptor::find_extrema_points(const cv::Mat& src_sdf, const cv::Mat& s
 void SDFDescriptor::classify_extrema_points(const std::vector<cv::Point>& src_extrema_points, 
                                             cv::Mat& src_eigenvalue1 , cv::Mat& src_eigenvalue2, 
                                             std::vector<std::vector<cv::Point>>& dst){
-    dst = std::vector<std::vector<cv::Point>>(3);
+    dst = std::vector<std::vector<cv::Point>>(4);
     // 0: extrema max; 1: extrema min, 2: extrema saddle
     for(const auto& pt: src_extrema_points){
         float ev1 = src_eigenvalue1.at<float>(pt.x, pt.y);
         float ev2 = src_eigenvalue2.at<float>(pt.x, pt.y);
+        // local maximal
         if(ev1 < 0 && ev2 < 0){
             dst[0].push_back(pt);
         }
+        // local minimal
         if(ev1 > 0 && ev2 > 0){
             dst[1].push_back(pt);
         }
+        // saddle
         if(ev1 * ev2 < 0){
             dst[2].push_back(pt);
+        }
+        // critical
+        if(ev1 * ev2 == 0){
+            dst[3].push_back(pt);
         }
     }
 }
@@ -129,11 +138,12 @@ bool SDFDescriptor::srvCallback(grid_map_demos::sdfDetect::Request& req, grid_ma
 
     detect_gaussian_curvature_and_eigen(src_sdf_, 3, doh_, eigenValue1_, eigenValue2_);
     find_extrema_points(src_sdf_, doh_, extrema_points_);
+
     classify_extrema_points(extrema_points_, eigenValue1_, eigenValue2_, classified_extrema_points_);
 
     sensor_msgs::PointCloud msg_extrema_points;
     int offset_ = 1;
-    for(int i = 0; i < 3; i++){
+    for(int i = 0; i < 4; i++){
         for(const auto& pt: classified_extrema_points_[i]){
             geometry_msgs::Point32 point32;
             point32.x = pt.x;
@@ -143,6 +153,30 @@ bool SDFDescriptor::srvCallback(grid_map_demos::sdfDetect::Request& req, grid_ma
         }
     }
     res.keypoints = msg_extrema_points;
+
+    // cv::Mat src = cv_ptr->image;
+    // sensor_msgs::PointCloud out;
+    // for(const auto& pt : classified_extrema_points_[3]){
+    //     geometry_msgs::Point32 pt32;
+    //     pt32.x = pt.x;
+    //     pt32.y = pt.y;
+    //     out.points.push_back(pt32);
+    // }
+    // for(const auto& pt : extrema_points_){
+    //     geometry_msgs::Point32 pt32;
+    //     pt32.x = pt.x;
+    //     pt32.y = pt.y;
+    //     out.points.push_back(pt32);
+    // }
+    // for(int i = 0; i < src.rows; i++){
+    //     for(int j = 0; j < src.cols; j++){
+    //         geometry_msgs::Point32 pt32;
+    //         pt32.x = i;
+    //         pt32.y = j;
+    //         out.points.push_back(pt32);
+    //     }
+    // }
+    // res.keypoints = out;
     return true;
 }
 

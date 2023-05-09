@@ -27,9 +27,11 @@ void SDF2D::callServer(const grid_map::Matrix& signedDistance_){
     sensor_msgs::PointCloud keypoints = srv.response.keypoints;
 
     int offset_ = 1;
-    cv::Mat data_extrema_max = cv::Mat::zeros(cols_, rows_, CV_32FC1);
-    cv::Mat data_extrema_min = cv::Mat::zeros(cols_, rows_, CV_32FC1);
-    cv::Mat data_extrema_saddle = cv::Mat::zeros(cols_, rows_, CV_32FC1);
+    cv::Mat data_extrema_max = cv::Mat::zeros(rows_, cols_, CV_32FC1);
+    cv::Mat data_extrema_min = cv::Mat::zeros(rows_, cols_, CV_32FC1);
+    cv::Mat data_extrema_saddle = cv::Mat::zeros(rows_, cols_, CV_32FC1);
+    cv::Mat data_extrema_critical = cv::Mat::zeros(rows_, cols_, CV_32FC1);
+
     for(const auto& pt : keypoints.points){
         float value = map.at("sdf2d", grid_map::Index(pt.x, pt.y));
         if(pt.z - offset_ == 0){
@@ -41,15 +43,28 @@ void SDF2D::callServer(const grid_map::Matrix& signedDistance_){
         if(pt.z - offset_ == 2){
             data_extrema_saddle.at<float>(pt.x, pt.y) = value;
         }
+        if(pt.z - offset_ == 3){
+            data_extrema_critical.at<float>(pt.x, pt.y) = value;
+        }
     }
-    Eigen::Matrix<float, -1, -1> layer_extrema_max, layer_extrema_min, layer_extrema_saddle;
+    Eigen::Matrix<float, -1, -1> layer_extrema_max, layer_extrema_min, layer_extrema_saddle, layer_extrema_critical;
     cv::cv2eigen(data_extrema_max, layer_extrema_max);
     cv::cv2eigen(data_extrema_min, layer_extrema_min);
     cv::cv2eigen(data_extrema_saddle, layer_extrema_saddle);
+    cv::cv2eigen(data_extrema_critical, layer_extrema_critical);
+
     map.add("extrema_max", layer_extrema_max);
     map.add("extrema_min", layer_extrema_min);
     map.add("extrema_saddle", layer_extrema_saddle);
+    map.add("extrema_critical", layer_extrema_critical);
 
+    // cv::Mat data_ = cv::Mat::zeros(rows_, cols_, CV_32FC1);
+    // for(const auto& pt: keypoints.points){
+    //     data_.at<float>(pt.x, pt.y) = map.at("sdf2d", grid_map::Index(pt.x, pt.y));
+    // }
+    // Eigen::Matrix<float, -1, -1> out_;
+    // cv::cv2eigen(data_, out_);
+    // map.add("extrema_max", out_);
 }
 
 void SDF2D::publishSignedDistanceMsg(const grid_map::Matrix& signedDistance_){
