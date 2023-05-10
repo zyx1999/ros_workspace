@@ -30,8 +30,11 @@ public:
     void detect_gaussian_curvature_and_eigen(const cv::Mat& src, int ksize, cv::Mat& dst_doh, cv::Mat& dst_eigenvalue1 , cv::Mat& dst_eigenvalue2);
     void find_extrema_points(const cv::Mat& src_sdf, const cv::Mat& src_doh, std::vector<cv::Point>& dst_extrema_points);
     void classify_extrema_points(const std::vector<cv::Point>& src_extrema_points, cv::Mat& src_eigenvalue1 , cv::Mat& src_eigenvalue2, std::vector<std::vector<cv::Point>>& dst);
+    void makeDescriptor(cv::Mat& src_sdf_, cv::Point& keypoint, int point_type);
+
 private:
     int once_{0};
+    int radius_{10};
     ros::NodeHandle nh_;
     ros::ServiceServer service_;
     ros::Publisher pub_extrema_points_;

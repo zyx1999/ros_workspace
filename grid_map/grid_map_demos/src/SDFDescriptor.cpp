@@ -19,8 +19,8 @@ void SDFDescriptor::find_extrema_points(const cv::Mat& src_sdf, const cv::Mat& s
     // dst_extrema_full = cv::Mat::zeros(src_doh.size(), CV_32FC1);
     // loop through each pixel in the image
     cv::Mat extrema = cv::Mat::zeros(src_doh.size(), CV_8UC1);
-    for(int i = 1; i < src_doh.rows - 1; i++){
-        for(int j = 1; j < src_doh.cols - 1; j++){
+    for(int i = radius_; i < src_doh.rows - radius_; i++){
+        for(int j = radius_; j < src_doh.cols - radius_; j++){
             // check if the current pixel is an extremum
             float value = src_doh.at<float>(i, j);
             bool is_extremum = true;
@@ -127,6 +127,16 @@ void SDFDescriptor::detect_gaussian_curvature_and_eigen(const cv::Mat& src, int 
     }
 }
 
+void SDFDescriptor::makeDescriptor(cv::Mat& src_sdf_, cv::Point& keypoint, int point_type){
+    cv::Mat dst = cv::Mat::zeros(src_sdf_.size(), src_sdf_.type());
+    cv::Mat mask = cv::Mat::zeros(src_sdf_.size(), CV_8UC1);
+    cv::circle(mask, keypoint, radius_, cv::Scalar(255), -1);
+    src_sdf_.copyTo(dst, mask);
+    std::vector<cv::Mat> data_{dst};
+    std::vector<std::string> pnames{"/home/yuxuanzhao/Desktop/dst.txt"};
+    toTXT(data_, pnames);
+}
+
 bool SDFDescriptor::srvCallback(grid_map_demos::sdfDetect::Request& req, grid_map_demos::sdfDetect::Response& res){
     cv_bridge::CvImagePtr cv_ptr;
     cv_ptr = cv_bridge::toCvCopy(req.sdf_map, sensor_msgs::image_encodings::TYPE_32FC1);
@@ -136,10 +146,15 @@ bool SDFDescriptor::srvCallback(grid_map_demos::sdfDetect::Request& req, grid_ma
     std::vector<cv::Point> extrema_points_;
     std::vector<std::vector<cv::Point>> classified_extrema_points_;
 
+    // keypoint detector
     detect_gaussian_curvature_and_eigen(src_sdf_, 3, doh_, eigenValue1_, eigenValue2_);
+
     find_extrema_points(src_sdf_, doh_, extrema_points_);
 
     classify_extrema_points(extrema_points_, eigenValue1_, eigenValue2_, classified_extrema_points_);
+
+    // keypoint description
+
 
     sensor_msgs::PointCloud msg_extrema_points;
     int offset_ = 1;
@@ -153,6 +168,11 @@ bool SDFDescriptor::srvCallback(grid_map_demos::sdfDetect::Request& req, grid_ma
         }
     }
     res.keypoints = msg_extrema_points;
+
+    if(once_ == 0){
+        once_++;
+        makeDescriptor(src_sdf_, classified_extrema_points_[0][0], 0);
+    }
     return true;
 }
 
