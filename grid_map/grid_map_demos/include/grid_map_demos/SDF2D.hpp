@@ -27,8 +27,10 @@ public:
     void callServer(const grid_map::Matrix& signedDistance_);
     void callback(const sensor_msgs::PointCloud::ConstPtr& msg);
 // private:
-    float resolution_;
+    float map_resolution_{0.5};
     int rows_{0}, cols_{0};
+    grid_map::Length map_length_{80.0, 60.0};
+    grid_map::Position map_position_{0.0, 0.0};
     std::string elevationLayer_;
     std::string pointcloudTopic;
     ros::NodeHandle nh_;

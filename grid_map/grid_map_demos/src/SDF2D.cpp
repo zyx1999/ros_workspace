@@ -1,7 +1,7 @@
 #include "grid_map_demos/SDF2D.hpp"
 
 
-SDF2D::SDF2D(ros::NodeHandle& nh): nh_(nh), elevationLayer_("elevation"), resolution_(0.5), pointcloudTopic("pointcloud_topic"){
+SDF2D::SDF2D(ros::NodeHandle& nh): nh_(nh), elevationLayer_("elevation"), pointcloudTopic("pointcloud_topic"){
     plainMapInit();
 
     generateSampleGridMap(map, elevationLayer_);
@@ -77,7 +77,7 @@ void SDF2D::plainMapInit(){
     // map init.
     map.add(elevationLayer_);
     map.setFrameId("map");
-    map.setGeometry(grid_map::Length(40.0, 30.0), resolution_, grid_map::Position(0.0, 0.0));
+    map.setGeometry(map_length_, map_resolution_, map_position_);
     ROS_INFO("Create map with size %f x %f m (%i x %i cells).\n The center of the map is located at (%f, %f) in the %s frame.", 
     map.getLength().x(), map.getLength().y(),
     map.getSize()(0), map.getSize()(1),
@@ -99,7 +99,7 @@ void SDF2D::to2DSignedDistanceMap(grid_map::Matrix& signedDistance){
 
     // Generate 2D SDF.
     Eigen::Matrix<bool, -1, -1> occupancy = elevationData.unaryExpr([=](float val) { return val > 0.5; });
-    signedDistance = grid_map::signed_distance_field::signedDistanceFromOccupancy(occupancy, resolution_);
+    signedDistance = grid_map::signed_distance_field::signedDistanceFromOccupancy(occupancy, map_resolution_);
     map.add("sdf2d", signedDistance);
 }
 
