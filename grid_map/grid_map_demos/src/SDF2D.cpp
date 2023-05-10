@@ -77,7 +77,7 @@ void SDF2D::plainMapInit(){
     // map init.
     map.add(elevationLayer_);
     map.setFrameId("map");
-    map.setGeometry(grid_map::Length(30.0, 20.0), resolution_, grid_map::Position(0.0, 0.0));
+    map.setGeometry(grid_map::Length(40.0, 30.0), resolution_, grid_map::Position(0.0, 0.0));
     ROS_INFO("Create map with size %f x %f m (%i x %i cells).\n The center of the map is located at (%f, %f) in the %s frame.", 
     map.getLength().x(), map.getLength().y(),
     map.getSize()(0), map.getSize()(1),
@@ -169,7 +169,7 @@ void SDF2D::generateSampleGridMap(grid_map::GridMap& map, std::string& elevation
     //     map.at(elevationLayer_, *it) = 1.0;
     // }
     // box
-    grid_map::Index lt(5, 5), rt(5, 25), lb(46, 5), rb(46, 25);
+    grid_map::Index lt(5, 5), rt(5, 45), lb(75, 5), rb(75, 45);
     for(grid_map::LineIterator it(map, lt, rt); !it.isPastEnd(); ++it){
         map.at(elevationLayer_, *it) = 1.0;
     }
@@ -181,5 +181,30 @@ void SDF2D::generateSampleGridMap(grid_map::GridMap& map, std::string& elevation
     } 
     for(grid_map::LineIterator it(map, rt, rb); !it.isPastEnd(); ++it){
         map.at(elevationLayer_, *it) = 1.0;
-    } 
+    }
+    // submap
+    grid_map::Index submapStartIndex(29, 20);
+    grid_map::Index submapBufferSize(2, 10);
+    for (grid_map::SubmapIterator it(map, submapStartIndex, submapBufferSize);
+        !it.isPastEnd(); ++it) {
+        map.at(elevationLayer_, *it) = 1.0;
+    }
+    grid_map::Index submapStartIndex2(17, 25);
+    grid_map::Index submapBufferSize2(1, 1);
+    for (grid_map::SubmapIterator it(map, submapStartIndex2, submapBufferSize2);
+        !it.isPastEnd(); ++it) {
+        map.at(elevationLayer_, *it) = 1.0;
+    }
+    grid_map::Index submapStartIndex3(50, 5);
+    grid_map::Index submapBufferSize3(6, 3);
+    for (grid_map::SubmapIterator it(map, submapStartIndex3, submapBufferSize3);
+        !it.isPastEnd(); ++it) {
+        map.at(elevationLayer_, *it) = 1.0;
+    }
+    grid_map::Index submapStartIndex4(50, 43);
+    grid_map::Index submapBufferSize4(6, 2);
+    for (grid_map::SubmapIterator it(map, submapStartIndex4, submapBufferSize4);
+        !it.isPastEnd(); ++it) {
+        map.at(elevationLayer_, *it) = 1.0;
+    }
 }
