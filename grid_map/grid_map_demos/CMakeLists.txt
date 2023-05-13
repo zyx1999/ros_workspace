@@ -89,7 +89,7 @@ add_definitions(
 ## Declare a cpp executable
 add_executable(detector
   src/detector.cpp
-  src/SDFDescriptor.cpp
+  src/SDFServer.cpp
 )
 
 add_executable(my_sdf_demo

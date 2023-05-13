@@ -12,25 +12,26 @@
 #include <geometry_msgs/Point32.h>
 #include <sensor_msgs/PointCloud.h>
 #include "grid_map_demos/sdfDetect.h"
-
-class SDFDescriptor{
+class SDFKeyPoint;
+class SDFServer{
 public:
-    SDFDescriptor(ros::NodeHandle& nh): nh_(nh), it_(nh_){
+    SDFServer(ros::NodeHandle& nh): nh_(nh), it_(nh_){
         // Drop Publisher/Subscriber way
-        // isub_ = it_.subscribe("/my_sdf_demo/signed_distance", 1, &SDFDescriptor::imageCallback, this);
+        // isub_ = it_.subscribe("/my_sdf_demo/signed_distance", 1, &SDFServer::imageCallback, this);
         // ipub_ = it_.advertise("/my_sdf_demo/extrema_points", 1);
         // pub_extrema_points_ = nh_.advertise<sensor_msgs::PointCloud>("/my_sdf_demo/extrema_points", 1);
         
         // Now use C/S to pass sdf map
-        service_ = nh_.advertiseService("/sdf_service", &SDFDescriptor::srvCallback, this);
+        service_ = nh_.advertiseService("/sdf_service", &SDFServer::srvCallback, this);
     }
     bool srvCallback(grid_map_demos::sdfDetect::Request& req, grid_map_demos::sdfDetect::Response& res);
     void imageCallback(const sensor_msgs::ImageConstPtr&);
     void toTXT(const std::vector<cv::Mat>&, const std::vector<std::string>&);
     void detect_gaussian_curvature_and_eigen(const cv::Mat& src, int ksize, cv::Mat& dst_doh, cv::Mat& dst_eigenvalue1 , cv::Mat& dst_eigenvalue2);
-    void find_extrema_points(const cv::Mat& src_sdf, const cv::Mat& src_doh, std::vector<cv::Point>& dst_extrema_points);
+    void find_extrema_points(const cv::Mat& src_doh, std::vector<cv::Point>& dst_extrema_points);
     void classify_extrema_points(const std::vector<cv::Point>& src_extrema_points, cv::Mat& src_eigenvalue1 , cv::Mat& src_eigenvalue2, std::vector<std::vector<cv::Point>>& dst);
-    void makeDescriptor(cv::Mat& src_sdf_, cv::Point& keypoint, int point_type);
+    void makeDescriptorForSingleKeypoint(cv::Mat& src_sdf_, cv::Point& keypoint, int point_type);
+    float gaussianDistanceWeight(int i, int j);
 
 private:
     int once_{0};
@@ -41,4 +42,16 @@ private:
     image_transport::ImageTransport it_;
     image_transport::Publisher ipub_;
     image_transport::Subscriber isub_;
+    std::vector<std::vector<SDFKeyPoint>> sdfkeypoints_ = std::vector<std::vector<SDFKeyPoint>>(4);
+};
+
+class SDFKeyPoint{
+public:
+    SDFKeyPoint(cv::Point& cord, float avg_sdf, std::vector<float>& hist_17bin, int type)
+        : cord_(cord), avg_sdf_(avg_sdf), hist_17bin_(hist_17bin), type_(type){}
+    cv::Point cord_;
+    float avg_sdf_;
+    std::vector<float> hist_17bin_;
+    // 0: maximal, 1: minimal, 2: saddle, 3: critical, 4: unknown
+    int type_;
 };
