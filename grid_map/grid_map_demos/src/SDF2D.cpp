@@ -141,20 +141,20 @@ void SDF2D::generateSampleGridMap(grid_map::GridMap& map, std::string& elevation
     //     !it.isPastEnd(); ++it) {
     //     map.at(elevationLayer_, *it) = 1.0;
     // }
-    // // circle
-    // Position center1(0.0, 0.0);
-    // double radius1 = 0.4;
-    // for (grid_map::CircleIterator it(map, center1, radius1);
-    //     !it.isPastEnd(); ++it) {
-    //     map.at(elevationLayer_, *it) = 1.0;
-    // }
-    // // Ellipse      
-    // Position center2(-1.0, -1.0);
-    // Length length(0.45, 0.9);
-    // for (grid_map::EllipseIterator it(map, center2, length, M_PI_4);
-    //     !it.isPastEnd(); ++it) {
-    //     map.at(elevationLayer_, *it) = 1.0;
-    // }
+    // circle
+    grid_map::Position center1(0, 0);
+    double radius1 = 3.5;
+    for (grid_map::CircleIterator it(map, center1, radius1);
+        !it.isPastEnd(); ++it) {
+        map.at(elevationLayer_, *it) = 1.0;
+    }
+    // Ellipse      
+    grid_map::Position center2(-20, 10);
+    grid_map::Length length(2.5, 4.5);
+    for (grid_map::EllipseIterator it(map, center2, length, M_PI_4);
+        !it.isPastEnd(); ++it) {
+        map.at(elevationLayer_, *it) = 1.0;
+    }
     // line
     // Index start1(-18, 2);
     // Index end1(-2, 13);
@@ -169,7 +169,7 @@ void SDF2D::generateSampleGridMap(grid_map::GridMap& map, std::string& elevation
     //     map.at(elevationLayer_, *it) = 1.0;
     // }
     // box
-    grid_map::Index lt(5, 5), rt(5, 45), lb(75, 5), rb(75, 45);
+    grid_map::Index lt(5, 5), rt(5, 115), lb(155, 5), rb(155, 115);
     for(grid_map::LineIterator it(map, lt, rt); !it.isPastEnd(); ++it){
         map.at(elevationLayer_, *it) = 1.0;
     }
