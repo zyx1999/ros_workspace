@@ -13,7 +13,7 @@ def callback(self):
     global publisher, imagePath
 
     img = cv2.imread(imagePath, cv2.IMREAD_UNCHANGED)
-
+    img = cv2.resize(img, (120,120))
 #    print img.shape
 #    print img.size
 #    print img.dtype.itemsize
