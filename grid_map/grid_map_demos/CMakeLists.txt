@@ -42,6 +42,7 @@ find_package(PCL REQUIRED)
 add_service_files(
   FILES
   sdfDetect.srv
+  img2PointCloud.srv
 )
 
 ## Generate added messages and services with any dependencies listed here
