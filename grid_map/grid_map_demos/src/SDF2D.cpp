@@ -2,6 +2,8 @@
 
 
 SDF2D::SDF2D(ros::NodeHandle& nh): nh_(nh), elevationLayer_("elevation"), pointcloudTopic("pointcloud_topic"){
+    mapFromImage();
+
     plainMapInit();
 
     generateSampleGridMap(map, elevationLayer_);
@@ -11,6 +13,23 @@ SDF2D::SDF2D(ros::NodeHandle& nh): nh_(nh), elevationLayer_("elevation"), pointc
 
     // publishSignedDistanceMsg(signedDistance_);
     callServer(signedDistance_);
+}
+
+void SDF2D::mapFromImage(){
+    ros::service::waitForService("/img2PC");
+    ros::ServiceClient client = nh_.serviceClient<grid_map_demos::img2PointCloud>("/img2PC");
+    grid_map_demos::img2PointCloud srv;
+    srv.request.type = 1.0;
+    client.call(srv);
+    sensor_msgs::Image msg = srv.response.img;
+    ROS_INFO("|Received Image message:");
+    ROS_INFO("|  Header:");
+    ROS_INFO("|      Frame ID: %s", msg.header.frame_id.c_str());
+    ROS_INFO("|  Image:");
+    ROS_INFO("|      Width: %d", msg.width);
+    ROS_INFO("|      Height: %d", msg.height);
+    ROS_INFO("|      Encoding: %s", msg.encoding.c_str());
+    // TODO: convert sensor_msgs::Image to grid_map
 }
 
 void SDF2D::callServer(const grid_map::Matrix& signedDistance_){

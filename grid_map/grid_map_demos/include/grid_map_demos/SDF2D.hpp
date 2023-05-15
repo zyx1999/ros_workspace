@@ -16,6 +16,7 @@
 #include <opencv2/opencv.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include "grid_map_demos/sdfDetect.h"
+#include "grid_map_demos/img2PointCloud.h"
 
 class SDF2D{
 public:
@@ -26,6 +27,7 @@ public:
     void publishSignedDistanceMsg(const grid_map::Matrix& signedDistance_);
     void callServer(const grid_map::Matrix& signedDistance_);
     void callback(const sensor_msgs::PointCloud::ConstPtr& msg);
+    void mapFromImage();
 // private:
     float map_resolution_{0.5};
     int rows_{0}, cols_{0};
