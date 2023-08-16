@@ -17,8 +17,8 @@ int main(int argc, char **argv){
         sdf2d.map.setTimestamp(time.toNSec());
 
         // publish sdf to Converter, then wait until subscribe the return message
-        sdf2d.imgTransPub.publish(sdf2d.signedDistanceMsg_);
-        ros::spinOnce();
+        // sdf2d.imgTransPub.publish(sdf2d.signedDistanceMsg_);
+        // ros::spinOnce();
         
         // publish map message to visualizer
         grid_map_msgs::GridMap message;

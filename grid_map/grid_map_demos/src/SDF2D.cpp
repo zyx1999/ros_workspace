@@ -4,9 +4,7 @@
 SDF2D::SDF2D(ros::NodeHandle& nh): nh_(nh), elevationLayer_("elevation"), pointcloudTopic("pointcloud_topic"){
     mapFromImage();
 
-    plainMapInit();
-
-    generateSampleGridMap(map, elevationLayer_);
+    // generateSampleGridMap(map, elevationLayer_);
     
     grid_map::Matrix signedDistance_;
     to2DSignedDistanceMap(signedDistance_);
@@ -29,7 +27,19 @@ void SDF2D::mapFromImage(){
     ROS_INFO("|      Width: %d", msg.width);
     ROS_INFO("|      Height: %d", msg.height);
     ROS_INFO("|      Encoding: %s", msg.encoding.c_str());
-    // TODO: convert sensor_msgs::Image to grid_map
+
+    // convert sensor_msgs::Image to grid_map
+    publisher = nh_.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
+    map.add(elevationLayer_);
+    map.setFrameId("map");
+    double minHeight = 0.0;
+    double maxHeight = 1.0;
+    grid_map::GridMapRosConverter::initializeFromImage(msg, map_resolution_, map);
+    ROS_INFO("Initialized map with size %f x %f m (%i x %i cells).", map.getLength().x(),
+             map.getLength().y(), map.getSize()(0), map.getSize()(1));
+    grid_map::GridMapRosConverter::addLayerFromImage(msg, elevationLayer_, map, minHeight, maxHeight);
+    rows_ = map.getSize()(0);
+    cols_ = map.getSize()(1);
 }
 
 void SDF2D::callServer(const grid_map::Matrix& signedDistance_){
@@ -149,6 +159,7 @@ void SDF2D::callback(const sensor_msgs::PointCloud::ConstPtr& msg){
     map.add("extrema_saddle", layer_extrema_saddle);
 }
 void SDF2D::generateSampleGridMap(grid_map::GridMap& map, std::string& elevationLayer_){
+    plainMapInit();
     // generate grid_map
     for(grid_map::GridMapIterator it(map); !it.isPastEnd(); ++it){
         map.at(elevationLayer_, *it) = 0;
