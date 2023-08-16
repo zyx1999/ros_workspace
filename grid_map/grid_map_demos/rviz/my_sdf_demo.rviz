@@ -85,7 +85,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: false
       Size (Pixels): 3
-      Size (m): 0.5
+      Size (m): 0.05
       Style: Boxes
       Topic: /grid_map_visualization/elevation_points
       Unreliable: false
@@ -111,7 +111,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: false
       Size (Pixels): 3
-      Size (m): 0.5
+      Size (m): 0.05
       Style: Flat Squares
       Topic: /grid_map_visualization/sdf_points
       Unreliable: false
@@ -137,7 +137,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: false
       Size (Pixels): 3
-      Size (m): 0.5
+      Size (m): 0.05
       Style: Spheres
       Topic: /grid_map_visualization/extrema_max
       Unreliable: false
@@ -163,7 +163,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: false
       Size (Pixels): 3
-      Size (m): 0.5
+      Size (m): 0.05
       Style: Spheres
       Topic: /grid_map_visualization/extrema_min
       Unreliable: false
@@ -189,7 +189,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: false
       Size (Pixels): 3
-      Size (m): 0.5
+      Size (m): 0.05
       Style: Spheres
       Topic: /grid_map_visualization/extrema_saddle
       Unreliable: false
@@ -215,7 +215,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: false
       Size (Pixels): 3
-      Size (m): 0.5
+      Size (m): 0.05
       Style: Spheres
       Topic: /grid_map_visualization/extrema_critical
       Unreliable: false

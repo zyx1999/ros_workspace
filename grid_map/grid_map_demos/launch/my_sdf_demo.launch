@@ -2,6 +2,7 @@
 <launch>
     <node name="img2PointCloudServer" pkg="grid_map_demos" type="image_server.py" output="screen">
       <param name="image_path" value="$(find grid_map_demos)/data/roadline.jpg" />
+      <!-- <param name="image_path" value="$(find grid_map_demos)/data/eth_logo.png" /> -->
     </node>
     <node name="my_sdf_demo" pkg="grid_map_demos" type="my_sdf_demo" output="screen"/>
     <node name="detector" pkg="grid_map_demos" type="detector" output="screen"/>

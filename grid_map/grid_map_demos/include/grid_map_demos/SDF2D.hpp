@@ -29,7 +29,7 @@ public:
     void callback(const sensor_msgs::PointCloud::ConstPtr& msg);
     void mapFromImage();
 // private:
-    float map_resolution_{0.5};
+    float map_resolution_{0.05};
     int rows_{0}, cols_{0};
     grid_map::Length map_length_{80.0, 60.0};
     grid_map::Position map_position_{0.0, 0.0};
