@@ -11,6 +11,16 @@ SDF2D::SDF2D(ros::NodeHandle& nh): nh_(nh), elevationLayer_("elevation"), pointc
 
     // publishSignedDistanceMsg(signedDistance_);
     callServer(signedDistance_);
+
+    // registration
+
+}
+
+void savedImage(sensor_msgs::Image msg, std::string saved_path){
+    sensor_msgs::ImageConstPtr img_ptr = boost::make_shared<sensor_msgs::Image const>(msg);
+    cv::Mat cv_image;
+    cv_image = cv_bridge::toCvShare(img_ptr, "bgr8")->image;
+    cv::imwrite(saved_path, cv_image);
 }
 
 void SDF2D::mapFromImage(){
@@ -18,8 +28,16 @@ void SDF2D::mapFromImage(){
     ros::ServiceClient client = nh_.serviceClient<grid_map_demos::img2PointCloud>("/img2PC");
     grid_map_demos::img2PointCloud srv;
     srv.request.type = 1.0;
+
+    // try saved image success
     client.call(srv);
     sensor_msgs::Image msg = srv.response.img;
+    savedImage(msg, "/home/yuxuanzhao/Desktop/saved_reference.jpg");
+
+    client.call(srv);
+    msg = srv.response.img;
+    savedImage(msg, "/home/yuxuanzhao/Desktop/saved_scanned.jpg");
+
     ROS_INFO("|Received Image message:");
     ROS_INFO("|  Header:");
     ROS_INFO("|      Frame ID: %s", msg.header.frame_id.c_str());

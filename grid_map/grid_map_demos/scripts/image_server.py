@@ -7,10 +7,15 @@ from grid_map_demos.srv import *
 
 def handle_request(req):
     res = img2PointCloudResponse()
-    global imagePath
+    global imagePaths
+    global count
 
+    imagePath = imagePaths[count]
+    print("count = {};  imagePath: {}".format(count, imagePath))
+    count += 1
     img = cv2.imread(imagePath, cv2.IMREAD_UNCHANGED)
-    img = cv2.resize(img, (384,120))
+    img = cv2.resize(img, (300,300))
+    # img = cv2.resize(img, (384,120))
 #    print img.shape
 #    print img.size
 #    print img.dtype.itemsize
@@ -46,12 +51,16 @@ def handle_request(req):
 
 #Main function initializes node and subscribers and starts the ROS loop
 def main_program():
-    global imagePath
+    global imagePaths
+    global count
+    count = 0
     rospack = rospkg.RosPack()
     rospy.init_node('img2PointCloudServer')
-    imagePath = rospy.get_param('~image_path')
+    imagePath1 = rospy.get_param('~image_path1')
+    imagePath2 = rospy.get_param('~image_path2')
+    imagePaths = [imagePath1, imagePath2]
     s = rospy.Service('img2PC', img2PointCloud, handle_request)
-    print("Img2PointCloud Server Ready...")
+    print("Img2PointCloud Server Ready... ")
     rospy.spin()
 
 if __name__ == '__main__':
