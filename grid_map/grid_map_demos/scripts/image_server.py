@@ -13,7 +13,7 @@ def handle_request(req):
     imagePath = imagePaths[count]
     print("count = {};  imagePath: {}".format(count, imagePath))
     count += 1
-    img = cv2.imread(imagePath, cv2.IMREAD_UNCHANGED)
+    img = cv2.imread(imagePath, 0)
     img = cv2.resize(img, (300,300))
     # img = cv2.resize(img, (384,120))
 #    print img.shape

@@ -16,11 +16,64 @@ SDF2D::SDF2D(ros::NodeHandle& nh): nh_(nh), elevationLayer_("elevation"), pointc
 
 }
 
-void savedImage(sensor_msgs::Image msg, std::string saved_path){
+void msgToMat(sensor_msgs::Image msg, cv::Mat& cv_image){
     sensor_msgs::ImageConstPtr img_ptr = boost::make_shared<sensor_msgs::Image const>(msg);
+    cv_image = cv_bridge::toCvShare(img_ptr, "bgr8")->image;  
+}
+void savedImage(sensor_msgs::Image& msg, std::string saved_path){
     cv::Mat cv_image;
-    cv_image = cv_bridge::toCvShare(img_ptr, "bgr8")->image;
+    msgToMat(msg, cv_image);
     cv::imwrite(saved_path, cv_image);
+}
+void align(sensor_msgs::Image msg1, sensor_msgs::Image msg2){
+    cv::Mat image1, image2;
+
+    msgToMat(msg1, image1);
+    cv::imwrite("/home/yuxuanzhao/Desktop/image1.jpg", image1);
+
+    msgToMat(msg2, image2);
+    cv::imwrite("/home/yuxuanzhao/Desktop/image2.jpg", image2);
+
+    // 初始化ORB检测器
+    cv::Ptr<cv::ORB> orb = cv::ORB::create();
+
+    // 检测关键点和计算描述子
+    std::vector<cv::KeyPoint> keypoints1, keypoints2;
+    cv::Mat descriptors1, descriptors2;
+    orb->detectAndCompute(image1, cv::noArray(), keypoints1, descriptors1);
+    orb->detectAndCompute(image2, cv::noArray(), keypoints2, descriptors2);
+
+    // 使用BFMatcher进行匹配
+    cv::BFMatcher matcher(cv::NORM_HAMMING);
+    std::vector<cv::DMatch> matches;
+    matcher.match(descriptors1, descriptors2, matches);
+
+    // 仅选择最佳匹配
+    std::sort(matches.begin(), matches.end());
+    const int numGoodMatches = matches.size() * 0.2;
+    matches.erase(matches.begin() + numGoodMatches, matches.end());
+
+    // Draw top matches
+    cv::Mat imMatches;
+    cv::drawMatches(image1, keypoints1, image2, keypoints2, matches, imMatches);
+    cv::imwrite("/home/yuxuanzhao/Desktop/matches.jpg", imMatches);
+
+
+    // 使用Homo
+    std::vector<cv::Point2f> points1, points2;
+
+    for (size_t i = 0; i < matches.size(); i++) {
+        points1.push_back(keypoints1[matches[i].queryIdx].pt);
+        points2.push_back(keypoints2[matches[i].trainIdx].pt);
+    }
+
+    cv::Mat homo = cv::findHomography(points1, points2, cv::RANSAC);
+    cv::Mat result;
+
+    cv::warpPerspective(image1, result, homo, image1.size());
+    cv::imwrite("/home/yuxuanzhao/Desktop/result.jpg", result);
+
+
 }
 
 void SDF2D::mapFromImage(){
@@ -31,20 +84,14 @@ void SDF2D::mapFromImage(){
 
     // try saved image success
     client.call(srv);
-    sensor_msgs::Image msg = srv.response.img;
-    savedImage(msg, "/home/yuxuanzhao/Desktop/saved_reference.jpg");
-
+    sensor_msgs::Image msg1 = srv.response.img;
+    // savedImage(msg2, "/home/yuxuanzhao/Desktop/saved_scanned.jpg");
+    
     client.call(srv);
-    msg = srv.response.img;
-    savedImage(msg, "/home/yuxuanzhao/Desktop/saved_scanned.jpg");
+    sensor_msgs::Image msg2 = srv.response.img;
+    // savedImage(msg1, "/home/yuxuanzhao/Desktop/saved_reference.jpg");
 
-    ROS_INFO("|Received Image message:");
-    ROS_INFO("|  Header:");
-    ROS_INFO("|      Frame ID: %s", msg.header.frame_id.c_str());
-    ROS_INFO("|  Image:");
-    ROS_INFO("|      Width: %d", msg.width);
-    ROS_INFO("|      Height: %d", msg.height);
-    ROS_INFO("|      Encoding: %s", msg.encoding.c_str());
+    align(msg1, msg2);
 
     // convert sensor_msgs::Image to grid_map
     publisher = nh_.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
@@ -52,10 +99,10 @@ void SDF2D::mapFromImage(){
     map.setFrameId("map");
     double minHeight = 0.0;
     double maxHeight = 1.0;
-    grid_map::GridMapRosConverter::initializeFromImage(msg, map_resolution_, map);
+    grid_map::GridMapRosConverter::initializeFromImage(msg1, map_resolution_, map);
     ROS_INFO("Initialized map with size %f x %f m (%i x %i cells).", map.getLength().x(),
              map.getLength().y(), map.getSize()(0), map.getSize()(1));
-    grid_map::GridMapRosConverter::addLayerFromImage(msg, elevationLayer_, map, minHeight, maxHeight);
+    grid_map::GridMapRosConverter::addLayerFromImage(msg1, elevationLayer_, map, minHeight, maxHeight);
     rows_ = map.getSize()(0);
     cols_ = map.getSize()(1);
 }
