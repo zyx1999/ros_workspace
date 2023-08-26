@@ -17,7 +17,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include "grid_map_demos/sdfDetect.h"
 #include "grid_map_demos/img2PointCloud.h"
-
+class SingleMap;
 class SDF2D{
 public:
     SDF2D(ros::NodeHandle& nh);
@@ -29,14 +29,8 @@ public:
     void callback(const sensor_msgs::PointCloud::ConstPtr& msg);
     void mapFromImage();
 // private:
-    float map_resolution_{0.05};
-    int rows_{0}, cols_{0};
-    grid_map::Length map_length_{80.0, 60.0};
-    grid_map::Position map_position_{0.0, 0.0};
-    std::string elevationLayer_;
     std::string pointcloudTopic;
     ros::NodeHandle nh_;
-    grid_map::GridMap map;
     ros::Publisher publisher;
     ros::Publisher pointcloudPublisher_;
     ros::Publisher freespacePublisher_;
@@ -45,4 +39,21 @@ public:
     sensor_msgs::ImagePtr signedDistanceMsg_;
     image_transport::Publisher imgTransPub;
     image_transport::Subscriber imgTransSub;
+    double minHeight = 0.0;
+    double maxHeight = 1.0;
+    ros::ServiceClient client;
+    grid_map_demos::img2PointCloud srv;
+
+    std::vector<SingleMap> maps_;
+};
+
+class SingleMap{
+public:
+    SingleMap():elevationLayer_("elevation"){}
+    grid_map::GridMap map;
+    float map_resolution_{0.05};
+    int rows_{0}, cols_{0};
+    grid_map::Length map_length_{80.0, 60.0};
+    grid_map::Position map_position_{0.0, 0.0};
+    std::string elevationLayer_;
 };

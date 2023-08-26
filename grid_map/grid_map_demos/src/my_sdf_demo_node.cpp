@@ -14,7 +14,7 @@ int main(int argc, char **argv){
     while(sdf2d.nh_.ok()){
         // elevation
         ros::Time time = ros::Time::now();   
-        sdf2d.map.setTimestamp(time.toNSec());
+        sdf2d.maps_[0].map.setTimestamp(time.toNSec());
 
         // publish sdf to Converter, then wait until subscribe the return message
         // sdf2d.imgTransPub.publish(sdf2d.signedDistanceMsg_);
@@ -22,7 +22,7 @@ int main(int argc, char **argv){
         
         // publish map message to visualizer
         grid_map_msgs::GridMap message;
-        grid_map::GridMapRosConverter::toMessage(sdf2d.map, message);
+        grid_map::GridMapRosConverter::toMessage(sdf2d.maps_[0].map, message);
         sdf2d.publisher.publish(message);
 
         ROS_INFO_THROTTLE(1.0, "Grid map (timestamp %f) published.", message.info.header.stamp.toSec());
