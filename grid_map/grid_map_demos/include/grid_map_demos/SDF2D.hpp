@@ -17,6 +17,9 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include "grid_map_demos/sdfDetect.h"
 #include "grid_map_demos/img2PointCloud.h"
+#include "grid_map_demos/PointCloud17.h"
+#include "grid_map_demos/Point17.h"
+
 class SingleMap;
 class SDF2D{
 public:

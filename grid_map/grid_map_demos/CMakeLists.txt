@@ -44,12 +44,18 @@ add_service_files(
   sdfDetect.srv
   img2PointCloud.srv
 )
+add_message_files(
+  FILES
+  PointCloud17.msg
+  Point17.msg
+)
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
   std_msgs
   sensor_msgs
+  grid_map_demos
 )
 
 ###################################

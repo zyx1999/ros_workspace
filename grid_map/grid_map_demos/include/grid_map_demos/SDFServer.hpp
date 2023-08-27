@@ -12,6 +12,8 @@
 #include <geometry_msgs/Point32.h>
 #include <sensor_msgs/PointCloud.h>
 #include "grid_map_demos/sdfDetect.h"
+#include "grid_map_demos/PointCloud17.h"
+#include "grid_map_demos/Point17.h"
 class SDFKeyPoint;
 class SDFServer{
 public:

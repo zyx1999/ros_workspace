@@ -232,26 +232,36 @@ bool SDFServer::srvCallback(grid_map_demos::sdfDetect::Request& req, grid_map_de
     find_extrema_points(doh_, extrema_points_);
     classify_extrema_points(extrema_points_, eigenValue1_, eigenValue2_, classified_extrema_points_);
 
-    // keypoint description
-    sensor_msgs::PointCloud msg_extrema_points;
-    int offset_ = 1;
+    grid_map_demos::PointCloud17 data;
+    int type_offset = 1;
     for(int i = 0; i < 4; i++){
         for(const auto& pt: classified_extrema_points_[i]){
-            geometry_msgs::Point32 point32;
-            point32.x = pt.x;
-            point32.y = pt.y;
-            point32.z = float(i+offset_);
-            msg_extrema_points.points.push_back(point32);
+            grid_map_demos::Point17 pt17;
+            pt17.x = pt.x;
+            pt17.y = pt.y;
+            pt17.type = float(type_offset + i);
+            data.points.push_back(pt17);
         }
     }
-    
+    res.cloud = data;
+    // keypoint description
+    // sensor_msgs::PointCloud msg_extrema_points;
+    // int offset_ = 1;
+    // for(int i = 0; i < 4; i++){
+    //     for(const auto& pt: classified_extrema_points_[i]){
+    //         geometry_msgs::Point32 point32;
+    //         point32.x = pt.x;
+    //         point32.y = pt.y;
+    //         point32.z = float(i+offset_);
+    //         msg_extrema_points.points.push_back(point32);
+    //     }
+    // }
     // for(int i = 0 ; i < 4; i++){
     //     for(int j = 0; j < classified_extrema_points_[i].size(); j++){
     //         makeDescriptorForSingleKeypoint(src_sdf_, classified_extrema_points_[i][j], i);
     //     }
     // }
-
-    res.keypoints = msg_extrema_points;
+    // res.cloud = msg_extrema_points;
 
     return true;
 }

@@ -150,26 +150,25 @@ void SDF2D::mapFromImage(){
         sensor_msgs::image_encodings::TYPE_32FC1, signedDistanceMat_).toImageMsg();
     srv_sdf.request.sdf_map = *msg_sdf;
     client_sdf.call(srv_sdf);
-    sensor_msgs::PointCloud keypoints = srv_sdf.response.keypoints;
 
-    int offset_ = 1;
+    grid_map_demos::PointCloud17 data = srv_sdf.response.cloud;
+    int type_offset = 1;
     cv::Mat data_extrema_max = cv::Mat::zeros(sgmap_.rows_, sgmap_.cols_, CV_32FC1);
     cv::Mat data_extrema_min = cv::Mat::zeros(sgmap_.rows_, sgmap_.cols_, CV_32FC1);
     cv::Mat data_extrema_saddle = cv::Mat::zeros(sgmap_.rows_, sgmap_.cols_, CV_32FC1);
-    cv::Mat data_extrema_critical = cv::Mat::zeros(sgmap_.rows_, sgmap_.cols_, CV_32FC1);
-
-    for(const auto& pt : keypoints.points){
+    cv::Mat data_extrema_critical = cv::Mat::zeros(sgmap_.rows_, sgmap_.cols_, CV_32FC1);    
+    for(const auto& pt : data.points){
         float value = sgmap_.map.at("sdf2d", grid_map::Index(pt.x, pt.y));
-        if(pt.z - offset_ == 0){
+        if(pt.type - type_offset == 0){
             data_extrema_max.at<float>(pt.x, pt.y) = value;
         }
-        if(pt.z - offset_ == 1){
+        if(pt.type - type_offset == 1){
             data_extrema_min.at<float>(pt.x, pt.y) = value;
         }
-        if(pt.z - offset_ == 2){
+        if(pt.type - type_offset == 2){
             data_extrema_saddle.at<float>(pt.x, pt.y) = value;
         }
-        if(pt.z - offset_ == 3){
+        if(pt.type - type_offset == 3){
             data_extrema_critical.at<float>(pt.x, pt.y) = value;
         }
     }
@@ -177,7 +176,6 @@ void SDF2D::mapFromImage(){
     cv::cv2eigen(data_extrema_max, layer_extrema_max);
     cv::cv2eigen(data_extrema_min, layer_extrema_min);
     cv::cv2eigen(data_extrema_saddle, layer_extrema_saddle);
-
     sgmap_.map.add("extrema_max", layer_extrema_max);
     sgmap_.map.add("extrema_min", layer_extrema_min);
     sgmap_.map.add("extrema_saddle", layer_extrema_saddle);
