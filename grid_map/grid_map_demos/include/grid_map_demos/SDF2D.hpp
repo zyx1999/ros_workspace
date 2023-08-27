@@ -24,8 +24,10 @@ class SingleMap;
 class SDF2D{
 public:
     SDF2D(ros::NodeHandle& nh);
-    void mapFromImage();
+    void mapFromImage(std::shared_ptr<SingleMap>&);
     void displayKeypoints(cv::Mat&, SingleMap&);
+    void SDFAlign(std::shared_ptr<SingleMap>&, std::shared_ptr<SingleMap>&);
+    void combineTwoMap(std::shared_ptr<SingleMap>&, std::shared_ptr<SingleMap>&, std::shared_ptr<SingleMap>&);
     double minHeight = 0.0;
     double maxHeight = 1.0;
     ros::NodeHandle nh_;
@@ -34,7 +36,7 @@ public:
     ros::ServiceClient client_sdf;
     grid_map_demos::img2PointCloud srv_img2PC;
     grid_map_demos::sdfDetect srv_sdf;
-    std::vector<SingleMap> maps_;
+    std::vector<std::shared_ptr<SingleMap>> ptrs;
 };
 
 class SingleMap{
@@ -46,4 +48,7 @@ public:
     grid_map::Position map_position_{0.0, 0.0};
     std::string elevationLayer_;
     grid_map::GridMap map;
+    sensor_msgs::Image img;
+    cv::Mat keypoints;
+    cv::Mat descriptors;
 };

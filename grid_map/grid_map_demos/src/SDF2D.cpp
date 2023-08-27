@@ -6,7 +6,28 @@ SDF2D::SDF2D(ros::NodeHandle& nh): nh_(nh){
     client_img2PC = nh_.serviceClient<grid_map_demos::img2PointCloud>("/img2PC");
     client_sdf = nh_.serviceClient<grid_map_demos::sdfDetect>("/sdf_service");
     publisher = nh_.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
-    mapFromImage();
+    std::shared_ptr<SingleMap> ptr_map1, ptr_map2, ptr_combine;
+    mapFromImage(ptr_map1);
+    mapFromImage(ptr_map2);
+    SDFAlign(ptr_map1, ptr_map2);
+    combineTwoMap(ptr_map1, ptr_map2, ptr_combine);
+}
+
+std::vector<cv::KeyPoint> convertMatToKeyPoints(const cv::Mat& mat) {
+    std::vector<cv::KeyPoint> keypoints;
+    // Check if the input matrix is of the right size and type
+    if (mat.empty() || mat.cols != 3 || mat.type() != CV_32F) {
+        return keypoints; // Return an empty vector
+    }
+    for (int i = 0; i < mat.rows; i++) {
+        float x = mat.at<float>(i, 0);
+        float y = mat.at<float>(i, 1);
+        float response = mat.at<float>(i, 2);
+
+        // Assuming the third column is the response
+        keypoints.push_back(cv::KeyPoint(cv::Point2f(x, y), 1 /* size */, -1 /* angle */, response));
+    }
+    return keypoints;
 }
 
 void msgToMat(sensor_msgs::Image msg, cv::Mat& cv_image){
@@ -65,35 +86,37 @@ void ORBAlign(sensor_msgs::Image msg1, sensor_msgs::Image msg2){
     cv::warpPerspective(image1, result, homo, image1.size());
     cv::imwrite("/home/yuxuanzhao/Desktop/result.jpg", result);
 }
-void SDFAlign(sensor_msgs::Image msg1, sensor_msgs::Image msg2){
-    cv::Mat image1, image2;
-
-    msgToMat(msg1, image1);
-    cv::imwrite("/home/yuxuanzhao/Desktop/image1.jpg", image1);
-
-    msgToMat(msg2, image2);
-    cv::imwrite("/home/yuxuanzhao/Desktop/image2.jpg", image2);
-
-    // 初始化ORB检测器
-    cv::Ptr<cv::ORB> orb = cv::ORB::create();
-
-    // 检测关键点和计算描述子
-    std::vector<cv::KeyPoint> keypoints1, keypoints2;
+void SDF2D::SDFAlign(std::shared_ptr<SingleMap>& ptr_map1, std::shared_ptr<SingleMap>& ptr_map2){
     cv::Mat descriptors1, descriptors2;
-    orb->detectAndCompute(image1, cv::noArray(), keypoints1, descriptors1);
-    orb->detectAndCompute(image2, cv::noArray(), keypoints2, descriptors2);
+    ptr_map1->descriptors.convertTo(descriptors1, CV_32F);
+    ptr_map2->descriptors.convertTo(descriptors2, CV_32F);
 
+    cv::Mat image1, image2;
+    msgToMat(ptr_map1->img, image1);
+    cv::imwrite("/home/yuxuanzhao/Desktop/map1_img.jpg", image1);
+    msgToMat(ptr_map2->img, image2);
+    cv::imwrite("/home/yuxuanzhao/Desktop/map2_img.jpg", image2);
+    // cv::eigen2cv(ptr_map1->map.get("sdf2d"), out_sdf);
+    // cv::imwrite("/home/yuxuanzhao/Desktop/map1_sdf.jpg", out_sdf);
+    
     // 使用BFMatcher进行匹配
-    cv::BFMatcher matcher(cv::NORM_HAMMING);
+    cv::BFMatcher matcher(cv::NORM_L2); // Use L2 norm for matching histograms
     std::vector<cv::DMatch> matches;
     matcher.match(descriptors1, descriptors2, matches);
-
     // 仅选择最佳匹配
     std::sort(matches.begin(), matches.end());
-    const int numGoodMatches = matches.size() * 0.2;
+    const int numGoodMatches = matches.size() * 0.06;
     matches.erase(matches.begin() + numGoodMatches, matches.end());
 
+    // for(const auto& match : matches) {
+    //     ROS_INFO("Query index: %d Train index: %d Distance: %f", 
+    //         match.queryIdx, match.trainIdx, match.distance);
+    // } 
+
     // Draw top matches
+    std::vector<cv::KeyPoint> keypoints1, keypoints2;
+    keypoints1 = convertMatToKeyPoints(ptr_map1->keypoints);
+    keypoints2 = convertMatToKeyPoints(ptr_map2->keypoints);
     cv::Mat imMatches;
     cv::drawMatches(image1, keypoints1, image2, keypoints2, matches, imMatches);
     cv::imwrite("/home/yuxuanzhao/Desktop/matches.jpg", imMatches);
@@ -144,6 +167,19 @@ cv::Mat convertPointCloud20ToMat(const grid_map_demos::PointCloud20& cloud) {
     return mat;
 }
 
+void SDF2D::combineTwoMap(std::shared_ptr<SingleMap>& ptr_map1, std::shared_ptr<SingleMap>& ptr_map2, std::shared_ptr<SingleMap>& ptr_out){
+    ptr_out = std::make_shared<SingleMap>();
+    // ptr_out->map.setGeometry(ptr_map1->map_length_, ptr_map1->map_resolution_, ptr_map1->map_position_);
+    // ptr_out->map.setFrameId("map");
+
+    // Eigen::MatrixXf mat1 = ptr_map1->map.get("elevation");
+    // Eigen::MatrixXf mat2 = ptr_map2->map.get("elevation");
+    // Eigen::MatrixXf hcat(mat1.rows(), mat1.cols() + mat2.cols());
+    // hcat << mat1, mat2;
+    // ptr_out->map.add("elevation", mat1);
+    ptrs.push_back(ptr_map1);
+}
+
 void SDF2D::displayKeypoints(cv::Mat& kpAndDesc, SingleMap& sgmap_){
     int type_offset = 1;
     cv::Mat data_extrema_max = cv::Mat::zeros(sgmap_.rows_, sgmap_.cols_, CV_32FC1);
@@ -171,38 +207,36 @@ void SDF2D::displayKeypoints(cv::Mat& kpAndDesc, SingleMap& sgmap_){
     sgmap_.map.add("extrema_saddle", layer_extrema_saddle);
 }
 
-void SDF2D::mapFromImage(){
-    SingleMap sgmap_;
-    
+void SDF2D::mapFromImage(std::shared_ptr<SingleMap>& ptr){
+    ptr = std::make_shared<SingleMap>();
     // 1. request image data from img2PC server.
     srv_img2PC.request.type = 1.0;
     client_img2PC.call(srv_img2PC);
-    sensor_msgs::Image msg1 = srv_img2PC.response.img;
+    ptr->img = srv_img2PC.response.img;
     // convert sensor_msgs::Image to grid_map
-    sgmap_.map.add(sgmap_.elevationLayer_);
-    sgmap_.map.setFrameId("map");
-    grid_map::GridMapRosConverter::initializeFromImage(msg1, sgmap_.map_resolution_, sgmap_.map);
-    ROS_INFO("Initialized map with size %f x %f m (%i x %i cells).", sgmap_.map.getLength().x(),
-             sgmap_.map.getLength().y(), sgmap_.map.getSize()(0), sgmap_.map.getSize()(1));
-    grid_map::GridMapRosConverter::addLayerFromImage(msg1, sgmap_.elevationLayer_, sgmap_.map, minHeight, maxHeight);
-    sgmap_.rows_ = sgmap_.map.getSize()(0);
-    sgmap_.cols_ = sgmap_.map.getSize()(1);
+    ptr->map.add(ptr->elevationLayer_);
+    ptr->map.setFrameId("map");
+    grid_map::GridMapRosConverter::initializeFromImage(ptr->img, ptr->map_resolution_, ptr->map);
+    ROS_INFO("Initialized map with size %f x %f m (%i x %i cells).", ptr->map.getLength().x(),
+             ptr->map.getLength().y(), ptr->map.getSize()(0), ptr->map.getSize()(1));
+    grid_map::GridMapRosConverter::addLayerFromImage(ptr->img, ptr->elevationLayer_, ptr->map, minHeight, maxHeight);
+    ptr->rows_ = ptr->map.getSize()(0);
+    ptr->cols_ = ptr->map.getSize()(1);
 
     // 2. Generate 2D SDF.
-    auto& elevationData = sgmap_.map.get(sgmap_.elevationLayer_);
+    auto& elevationData = ptr->map.get(ptr->elevationLayer_);
     if (elevationData.hasNaN()) {
         const float inpaint{elevationData.minCoeffOfFinites()};
         ROS_WARN("[SdfDemo] Map contains NaN values. Will apply inpainting with min value.");
         elevationData = elevationData.unaryExpr([=](float v) { return std::isfinite(v)? v : inpaint; });
     }
     Eigen::Matrix<bool, -1, -1> occupancy = elevationData.unaryExpr([=](float val) { return val > 0.5; });
-    grid_map::Matrix signedDistance = grid_map::signed_distance_field::signedDistanceFromOccupancy(occupancy, sgmap_.map_resolution_);
-    sgmap_.map.add("sdf2d", signedDistance);
+    grid_map::Matrix signedDistance = grid_map::signed_distance_field::signedDistanceFromOccupancy(occupancy, ptr->map_resolution_);
+    ptr->map.add("sdf2d", signedDistance);
 
     // 3. get keypoints & descriptors from detector server.
     cv::Mat signedDistanceMat_;
     cv::eigen2cv(signedDistance, signedDistanceMat_);
-
     ros::service::waitForService("/sdf_service");
     sensor_msgs::ImagePtr msg_sdf = cv_bridge::CvImage(std_msgs::Header(), 
         sensor_msgs::image_encodings::TYPE_32FC1, signedDistanceMat_).toImageMsg();
@@ -212,10 +246,14 @@ void SDF2D::mapFromImage(){
     cv::Mat keypointsAndDescriptors = convertPointCloud20ToMat(data);
 
     // show keypoints
-    displayKeypoints(keypointsAndDescriptors, sgmap_);
+    displayKeypoints(keypointsAndDescriptors, *ptr);
 
-    maps_.push_back(sgmap_);
+    cv::Mat& kdmat = keypointsAndDescriptors;
+    // 4. split 分割为两个子矩阵
+    ptr->keypoints = kdmat(cv::Range::all(), cv::Range(0, 3)).clone(); // n x 3
+    ptr->descriptors = kdmat(cv::Range::all(), cv::Range(3, kdmat.cols)).clone(); // n x 17
 
+    ptrs.push_back(ptr);
     // Eigen::Matrix<float, -1, -1> target;
     // cv::cv2eigen(keypointsAndDescriptors, target);
     // std::string filename("/home/yuxuanzhao/Desktop/dpAndDesc.txt");

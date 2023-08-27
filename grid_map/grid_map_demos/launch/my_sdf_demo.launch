@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <launch>
     <node name="img2PointCloudServer" pkg="grid_map_demos" type="image_server.py" output="screen">
-      <param name="image_path1" value="$(find grid_map_demos)/data/scanned.jpg" />
-      <param name="image_path2" value="$(find grid_map_demos)/data/reference.jpg" />
+      <param name="image_path1" value="$(find grid_map_demos)/data/bev_1.jpg" />
+      <param name="image_path2" value="$(find grid_map_demos)/data/bev_2.jpg" />
     </node>
     <node name="my_sdf_demo" pkg="grid_map_demos" type="my_sdf_demo" output="screen"/>
     <node name="detector" pkg="grid_map_demos" type="detector" output="screen"/>
