@@ -46,8 +46,8 @@ add_service_files(
 )
 add_message_files(
   FILES
-  PointCloud17.msg
-  Point17.msg
+  PointCloud20.msg
+  Point20.msg
 )
 
 ## Generate added messages and services with any dependencies listed here

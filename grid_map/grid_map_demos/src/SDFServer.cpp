@@ -125,7 +125,8 @@ void SDFServer::detect_gaussian_curvature_and_eigen(const cv::Mat& src, int ksiz
     }
 }
 
-void SDFServer::makeDescriptorForSingleKeypoint(cv::Mat& src_sdf_, cv::Point& keypoint, int point_type){
+void SDFServer::makeDescriptorForSingleKeypoint(cv::Mat& src_sdf_, 
+cv::Point& keypoint, std::vector<float>& hist_17bin_out){
     // 1. Compute keypoint roi window
     cv::Mat kp_window = cv::Mat::zeros(src_sdf_.size(), src_sdf_.type());
     cv::Mat mask = cv::Mat::zeros(src_sdf_.size(), CV_8UC1);
@@ -165,13 +166,12 @@ void SDFServer::makeDescriptorForSingleKeypoint(cv::Mat& src_sdf_, cv::Point& ke
             main_bin = i;
         }
     }
-    std::vector<float> hist_17bin_data = std::vector<float>(17);
     for(int i = 0; i < 36; i++){
         int idx = (i - main_bin + 36) % 36;
         if(idx < 18){
-            hist_17bin_data[idx] += hist_36bin.at<float>(0, i);
+            hist_17bin_out[idx] += hist_36bin.at<float>(0, i);
         } else {
-            hist_17bin_data[idx - 18] += hist_36bin.at<float>(0, i);
+            hist_17bin_out[idx - 18] += hist_36bin.at<float>(0, i);
         }
     }
 
@@ -184,8 +184,8 @@ void SDFServer::makeDescriptorForSingleKeypoint(cv::Mat& src_sdf_, cv::Point& ke
     }
     avg_dis /= roi.rows * roi.cols;
 
-    SDFKeyPoint sdfkeypoint(keypoint, avg_dis, hist_17bin_data, point_type);
-    sdfkeypoints_[point_type].push_back(sdfkeypoint);
+    // SDFKeyPoint sdfkeypoint(keypoint, avg_dis, hist_17bin_data, point_type);
+    // sdfkeypoints_[point_type].push_back(sdfkeypoint);
     // cv::Mat hist_17bin(hist_17bin_data);
     // std::vector<cv::Mat> data_{hist_36bin, hist_17bin};
     // std::vector<std::string> pnames{"/home/yuxuanzhao/Desktop/hist_36bin.txt", "/home/yuxuanzhao/Desktop/hist_17bin.txt"};
@@ -232,37 +232,40 @@ bool SDFServer::srvCallback(grid_map_demos::sdfDetect::Request& req, grid_map_de
     find_extrema_points(doh_, extrema_points_);
     classify_extrema_points(extrema_points_, eigenValue1_, eigenValue2_, classified_extrema_points_);
 
-    grid_map_demos::PointCloud17 data;
+    grid_map_demos::PointCloud20 data;
     int type_offset = 1;
     for(int i = 0; i < 4; i++){
-        for(const auto& pt: classified_extrema_points_[i]){
-            grid_map_demos::Point17 pt17;
-            pt17.x = pt.x;
-            pt17.y = pt.y;
-            pt17.type = float(type_offset + i);
-            data.points.push_back(pt17);
+        for(size_t j = 0; j < classified_extrema_points_[i].size(); j++){
+            std::vector<float> hist_17bin_out = std::vector<float>(17);
+            cv::Point pt = classified_extrema_points_[i][j];
+            makeDescriptorForSingleKeypoint(src_sdf_, pt, hist_17bin_out);
+        
+            grid_map_demos::Point20 pt20;
+            pt20.x = pt.x;
+            pt20.y = pt.y;
+            pt20.type = float(type_offset + i);
+            pt20.hist1 = hist_17bin_out[0];
+            pt20.hist2 = hist_17bin_out[1];
+            pt20.hist3 = hist_17bin_out[2];
+            pt20.hist4 = hist_17bin_out[3];
+            pt20.hist5 = hist_17bin_out[4];
+            pt20.hist6 = hist_17bin_out[5];
+            pt20.hist7 = hist_17bin_out[6];
+            pt20.hist8 = hist_17bin_out[7];
+            pt20.hist9 = hist_17bin_out[8];
+            pt20.hist10 = hist_17bin_out[9];
+            pt20.hist11 = hist_17bin_out[10];
+            pt20.hist12 = hist_17bin_out[11];
+            pt20.hist13 = hist_17bin_out[12];
+            pt20.hist14 = hist_17bin_out[13];
+            pt20.hist15 = hist_17bin_out[14];
+            pt20.hist16 = hist_17bin_out[15];
+            pt20.hist17 = hist_17bin_out[16];
+
+            data.points.push_back(pt20);
         }
     }
     res.cloud = data;
-    // keypoint description
-    // sensor_msgs::PointCloud msg_extrema_points;
-    // int offset_ = 1;
-    // for(int i = 0; i < 4; i++){
-    //     for(const auto& pt: classified_extrema_points_[i]){
-    //         geometry_msgs::Point32 point32;
-    //         point32.x = pt.x;
-    //         point32.y = pt.y;
-    //         point32.z = float(i+offset_);
-    //         msg_extrema_points.points.push_back(point32);
-    //     }
-    // }
-    // for(int i = 0 ; i < 4; i++){
-    //     for(int j = 0; j < classified_extrema_points_[i].size(); j++){
-    //         makeDescriptorForSingleKeypoint(src_sdf_, classified_extrema_points_[i][j], i);
-    //     }
-    // }
-    // res.cloud = msg_extrema_points;
-
     return true;
 }
 

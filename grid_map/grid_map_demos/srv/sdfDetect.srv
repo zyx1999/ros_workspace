@@ -3,4 +3,4 @@ sensor_msgs/Image sdf_map
 ---
 # Response
 # sensor_msgs/PointCloud keypoints
-grid_map_demos/PointCloud17 cloud
+grid_map_demos/PointCloud20 cloud

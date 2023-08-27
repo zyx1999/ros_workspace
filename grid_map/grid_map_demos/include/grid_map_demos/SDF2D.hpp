@@ -17,15 +17,15 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include "grid_map_demos/sdfDetect.h"
 #include "grid_map_demos/img2PointCloud.h"
-#include "grid_map_demos/PointCloud17.h"
-#include "grid_map_demos/Point17.h"
+#include "grid_map_demos/PointCloud20.h"
+#include "grid_map_demos/Point20.h"
 
 class SingleMap;
 class SDF2D{
 public:
     SDF2D(ros::NodeHandle& nh);
     void mapFromImage();
-
+    void displayKeypoints(cv::Mat&, SingleMap&);
     double minHeight = 0.0;
     double maxHeight = 1.0;
     ros::NodeHandle nh_;
