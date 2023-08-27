@@ -21,39 +21,26 @@ class SingleMap;
 class SDF2D{
 public:
     SDF2D(ros::NodeHandle& nh);
-    void plainMapInit();
-    void to2DSignedDistanceMap(grid_map::Matrix& signedDistance);
-    void generateSampleGridMap(grid_map::GridMap&, std::string&);
-    void publishSignedDistanceMsg(const grid_map::Matrix& signedDistance_);
-    void callServer(const grid_map::Matrix& signedDistance_);
-    void callback(const sensor_msgs::PointCloud::ConstPtr& msg);
     void mapFromImage();
-// private:
-    std::string pointcloudTopic;
-    ros::NodeHandle nh_;
-    ros::Publisher publisher;
-    ros::Publisher pointcloudPublisher_;
-    ros::Publisher freespacePublisher_;
-    ros::Publisher occupiedPublisher_;
-    ros::Subscriber sub_extrema_points_;
-    sensor_msgs::ImagePtr signedDistanceMsg_;
-    image_transport::Publisher imgTransPub;
-    image_transport::Subscriber imgTransSub;
+
     double minHeight = 0.0;
     double maxHeight = 1.0;
-    ros::ServiceClient client;
-    grid_map_demos::img2PointCloud srv;
-
+    ros::NodeHandle nh_;
+    ros::Publisher publisher;
+    ros::ServiceClient client_img2PC;
+    ros::ServiceClient client_sdf;
+    grid_map_demos::img2PointCloud srv_img2PC;
+    grid_map_demos::sdfDetect srv_sdf;
     std::vector<SingleMap> maps_;
 };
 
 class SingleMap{
 public:
     SingleMap():elevationLayer_("elevation"){}
-    grid_map::GridMap map;
-    float map_resolution_{0.05};
     int rows_{0}, cols_{0};
+    float map_resolution_{0.05};
     grid_map::Length map_length_{80.0, 60.0};
     grid_map::Position map_position_{0.0, 0.0};
     std::string elevationLayer_;
+    grid_map::GridMap map;
 };
