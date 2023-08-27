@@ -16,11 +16,6 @@ class SDFKeyPoint;
 class SDFServer{
 public:
     SDFServer(ros::NodeHandle& nh): nh_(nh), it_(nh_){
-        // Drop Publisher/Subscriber way
-        // isub_ = it_.subscribe("/my_sdf_demo/signed_distance", 1, &SDFServer::imageCallback, this);
-        // ipub_ = it_.advertise("/my_sdf_demo/extrema_points", 1);
-        // pub_extrema_points_ = nh_.advertise<sensor_msgs::PointCloud>("/my_sdf_demo/extrema_points", 1);
-        
         // Now use C/S to pass sdf map
         service_ = nh_.advertiseService("/sdf_service", &SDFServer::srvCallback, this);
     }

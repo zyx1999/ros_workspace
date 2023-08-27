@@ -229,13 +229,10 @@ bool SDFServer::srvCallback(grid_map_demos::sdfDetect::Request& req, grid_map_de
 
     // keypoint detector
     detect_gaussian_curvature_and_eigen(src_sdf_, 3, doh_, eigenValue1_, eigenValue2_);
-
     find_extrema_points(doh_, extrema_points_);
-
     classify_extrema_points(extrema_points_, eigenValue1_, eigenValue2_, classified_extrema_points_);
 
     // keypoint description
-
     sensor_msgs::PointCloud msg_extrema_points;
     int offset_ = 1;
     for(int i = 0; i < 4; i++){
