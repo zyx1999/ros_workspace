@@ -169,15 +169,38 @@ cv::Mat convertPointCloud20ToMat(const grid_map_demos::PointCloud20& cloud) {
 
 void SDF2D::combineTwoMap(std::shared_ptr<SingleMap>& ptr_map1, std::shared_ptr<SingleMap>& ptr_map2, std::shared_ptr<SingleMap>& ptr_out){
     ptr_out = std::make_shared<SingleMap>();
-    // ptr_out->map.setGeometry(ptr_map1->map_length_, ptr_map1->map_resolution_, ptr_map1->map_position_);
-    // ptr_out->map.setFrameId("map");
+    ptr_out->map.setFrameId("map");
 
-    // Eigen::MatrixXf mat1 = ptr_map1->map.get("elevation");
-    // Eigen::MatrixXf mat2 = ptr_map2->map.get("elevation");
-    // Eigen::MatrixXf hcat(mat1.rows(), mat1.cols() + mat2.cols());
-    // hcat << mat1, mat2;
-    // ptr_out->map.add("elevation", mat1);
-    ptrs.push_back(ptr_map1);
+    float multiple_ = 1/ptr_map1->map_resolution_;
+    float border_length = 4;
+    grid_map::Length out_length(ptr_out->map_length_(0), ptr_out->map_length_(1)*2+border_length);
+    ptr_out->map.setGeometry(out_length, ptr_map1->map_resolution_, ptr_map1->map_position_);
+
+
+    Eigen::MatrixXf mat1 = ptr_map1->map.get("elevation");
+    Eigen::MatrixXf mat2 = ptr_map2->map.get("elevation");
+    Eigen::MatrixXf border(mat1.rows(), int(multiple_*border_length));
+    border.setZero();
+    Eigen::MatrixXf hcat(mat1.rows(), mat1.cols() + border.cols() +mat2.cols());
+    hcat << mat1, border, mat2;
+    ptr_out->map.add("elevation", hcat);
+
+
+    mat1 = ptr_map1->map.get("sdf2d");
+    mat2 = ptr_map2->map.get("sdf2d");
+    Eigen::MatrixXf hcatSDF(mat1.rows(), mat1.cols() + border.cols() +mat2.cols());
+    hcatSDF << mat1, border, mat2;
+    ptr_out->map.add("sdf2d", hcatSDF);
+
+
+
+    Eigen::Array2i ar = ptr_out->map.getSize();
+    ROS_INFO("ptr_out->map.getSize(): (%d, %d)", ar(0), ar(1));
+    Eigen::Array2i ar1 = ptr_map1->map.getSize();
+    ROS_INFO("ptr_map1->map.getSize(): (%d, %d)", ar1(0), ar1(1));
+    ROS_INFO("Mat1: %ld x %ld", mat1.rows(), mat1.cols());
+    
+    ptrs.push_back(ptr_out);
 }
 
 void SDF2D::displayKeypoints(cv::Mat& kpAndDesc, SingleMap& sgmap_){

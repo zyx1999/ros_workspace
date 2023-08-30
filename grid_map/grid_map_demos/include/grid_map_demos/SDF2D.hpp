@@ -44,7 +44,7 @@ public:
     SingleMap():elevationLayer_("elevation"){}
     int rows_{0}, cols_{0};
     float map_resolution_{0.05};
-    grid_map::Length map_length_{80.0, 60.0};
+    grid_map::Length map_length_{15.0, 15.0};
     grid_map::Position map_position_{0.0, 0.0};
     std::string elevationLayer_;
     grid_map::GridMap map;
