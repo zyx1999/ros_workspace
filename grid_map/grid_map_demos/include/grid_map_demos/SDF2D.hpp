@@ -28,6 +28,7 @@ public:
     void displayKeypoints(cv::Mat&, SingleMap&);
     void SDFAlign(std::shared_ptr<SingleMap>&, std::shared_ptr<SingleMap>&);
     void combineTwoMap(std::shared_ptr<SingleMap>&, std::shared_ptr<SingleMap>&, std::shared_ptr<SingleMap>&);
+    bool setDisplayMap(int);
     double minHeight = 0.0;
     double maxHeight = 1.0;
     ros::NodeHandle nh_;
@@ -37,6 +38,7 @@ public:
     grid_map_demos::img2PointCloud srv_img2PC;
     grid_map_demos::sdfDetect srv_sdf;
     std::vector<std::shared_ptr<SingleMap>> ptrs;
+    grid_map::GridMap displayMap;
 };
 
 class SingleMap{

@@ -11,6 +11,7 @@ SDF2D::SDF2D(ros::NodeHandle& nh): nh_(nh){
     mapFromImage(ptr_map2);
     SDFAlign(ptr_map1, ptr_map2);
     combineTwoMap(ptr_map1, ptr_map2, ptr_combine);
+    setDisplayMap(1);
 }
 
 std::vector<cv::KeyPoint> convertMatToKeyPoints(const cv::Mat& mat) {
@@ -176,7 +177,7 @@ void SDF2D::combineTwoMap(std::shared_ptr<SingleMap>& ptr_map1, std::shared_ptr<
     grid_map::Length out_length(ptr_out->map_length_(0), ptr_out->map_length_(1)*2+border_length);
     ptr_out->map.setGeometry(out_length, ptr_map1->map_resolution_, ptr_map1->map_position_);
 
-
+    // elevation layer
     Eigen::MatrixXf mat1 = ptr_map1->map.get("elevation");
     Eigen::MatrixXf mat2 = ptr_map2->map.get("elevation");
     Eigen::MatrixXf border(mat1.rows(), int(multiple_*border_length));
@@ -185,14 +186,12 @@ void SDF2D::combineTwoMap(std::shared_ptr<SingleMap>& ptr_map1, std::shared_ptr<
     hcat << mat1, border, mat2;
     ptr_out->map.add("elevation", hcat);
 
-
+    // sdf2d layer 
     mat1 = ptr_map1->map.get("sdf2d");
     mat2 = ptr_map2->map.get("sdf2d");
     Eigen::MatrixXf hcatSDF(mat1.rows(), mat1.cols() + border.cols() +mat2.cols());
     hcatSDF << mat1, border, mat2;
     ptr_out->map.add("sdf2d", hcatSDF);
-
-
 
     Eigen::Array2i ar = ptr_out->map.getSize();
     ROS_INFO("ptr_out->map.getSize(): (%d, %d)", ar(0), ar(1));
@@ -202,7 +201,9 @@ void SDF2D::combineTwoMap(std::shared_ptr<SingleMap>& ptr_map1, std::shared_ptr<
     
     ptrs.push_back(ptr_out);
 }
-
+bool SDF2D::setDisplayMap(int idx){
+    displayMap = ptrs[idx]->map;
+}
 void SDF2D::displayKeypoints(cv::Mat& kpAndDesc, SingleMap& sgmap_){
     int type_offset = 1;
     cv::Mat data_extrema_max = cv::Mat::zeros(sgmap_.rows_, sgmap_.cols_, CV_32FC1);

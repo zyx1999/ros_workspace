@@ -14,11 +14,11 @@ int main(int argc, char **argv){
     while(sdf2d.nh_.ok()){
         // elevation
         ros::Time time = ros::Time::now();   
-        sdf2d.ptrs[2]->map.setTimestamp(time.toNSec());
+        sdf2d.displayMap.setTimestamp(time.toNSec());
         
         // publish map message to visualizer
         grid_map_msgs::GridMap message;
-        grid_map::GridMapRosConverter::toMessage(sdf2d.ptrs[2]->map, message);
+        grid_map::GridMapRosConverter::toMessage(sdf2d.displayMap, message);
         sdf2d.publisher.publish(message);
 
         ROS_INFO_THROTTLE(1.0, "Grid map (timestamp %f) published.", message.info.header.stamp.toSec());
