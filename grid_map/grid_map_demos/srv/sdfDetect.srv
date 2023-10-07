@@ -4,3 +4,6 @@ sensor_msgs/Image sdf_map
 # Response
 # sensor_msgs/PointCloud keypoints
 grid_map_demos/PointCloud20 cloud
+int64 n_of_max
+int64 n_of_min
+int64 n_of_saddle

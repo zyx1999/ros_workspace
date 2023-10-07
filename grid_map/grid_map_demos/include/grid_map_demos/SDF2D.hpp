@@ -27,6 +27,7 @@ public:
     void mapFromImage(std::shared_ptr<SingleMap>&);
     void displayKeypoints(cv::Mat&, SingleMap&);
     void SDFAlign(std::shared_ptr<SingleMap>&, std::shared_ptr<SingleMap>&);
+    void ORBAlign(sensor_msgs::Image, sensor_msgs::Image);
     void combineTwoMap(std::shared_ptr<SingleMap>&, std::shared_ptr<SingleMap>&, std::shared_ptr<SingleMap>&);
     bool setDisplayMap(int);
     double minHeight = 0.0;
@@ -51,6 +52,8 @@ public:
     std::string elevationLayer_;
     grid_map::GridMap map;
     sensor_msgs::Image img;
-    cv::Mat keypoints;
-    cv::Mat descriptors;
+    // cv::Mat keypoints;
+    std::vector<cv::Mat> keypoints;
+    // cv::Mat descriptors;
+    std::vector<cv::Mat> descriptors;
 };

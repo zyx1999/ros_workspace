@@ -126,7 +126,7 @@ void SDFServer::detect_gaussian_curvature_and_eigen(const cv::Mat& src, int ksiz
 }
 
 void SDFServer::makeDescriptorForSingleKeypoint(cv::Mat& src_sdf_, 
-cv::Point& keypoint, std::vector<float>& hist_17bin_out){
+cv::Point& keypoint, std::vector<float>& hist_17bin_out, float& avg_dist){
     // 1. Compute keypoint roi window
     cv::Mat kp_window = cv::Mat::zeros(src_sdf_.size(), src_sdf_.type());
     cv::Mat mask = cv::Mat::zeros(src_sdf_.size(), CV_8UC1);
@@ -183,7 +183,7 @@ cv::Point& keypoint, std::vector<float>& hist_17bin_out){
         }
     }
     avg_dis /= roi.rows * roi.cols;
-
+    avg_dist = avg_dis;
     // SDFKeyPoint sdfkeypoint(keypoint, avg_dis, hist_17bin_data, point_type);
     // sdfkeypoints_[point_type].push_back(sdfkeypoint);
     // cv::Mat hist_17bin(hist_17bin_data);
@@ -238,7 +238,8 @@ bool SDFServer::srvCallback(grid_map_demos::sdfDetect::Request& req, grid_map_de
         for(size_t j = 0; j < classified_extrema_points_[i].size(); j++){
             std::vector<float> hist_17bin_out = std::vector<float>(17);
             cv::Point pt = classified_extrema_points_[i][j];
-            makeDescriptorForSingleKeypoint(src_sdf_, pt, hist_17bin_out);
+            float avg_dist{0};
+            makeDescriptorForSingleKeypoint(src_sdf_, pt, hist_17bin_out, avg_dist);
         
             grid_map_demos::Point20 pt20;
             pt20.x = pt.x;
@@ -261,11 +262,15 @@ bool SDFServer::srvCallback(grid_map_demos::sdfDetect::Request& req, grid_map_de
             pt20.hist15 = hist_17bin_out[14];
             pt20.hist16 = hist_17bin_out[15];
             pt20.hist17 = hist_17bin_out[16];
-
+            pt20.histavg = avg_dist;
             data.points.push_back(pt20);
         }
     }
     res.cloud = data;
+    res.n_of_max = classified_extrema_points_[0].size();
+    res.n_of_min = classified_extrema_points_[1].size();
+    res.n_of_saddle = classified_extrema_points_[2].size();
+
     return true;
 }
 

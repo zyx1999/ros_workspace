@@ -18,3 +18,4 @@ float32 hist14
 float32 hist15
 float32 hist16
 float32 hist17
+float32 histavg

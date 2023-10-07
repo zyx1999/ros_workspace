@@ -9,9 +9,10 @@ SDF2D::SDF2D(ros::NodeHandle& nh): nh_(nh){
     std::shared_ptr<SingleMap> ptr_map1, ptr_map2, ptr_combine;
     mapFromImage(ptr_map1);
     mapFromImage(ptr_map2);
+    // ORBAlign(ptr_map1->img, ptr_map2->img);
     SDFAlign(ptr_map1, ptr_map2);
     combineTwoMap(ptr_map1, ptr_map2, ptr_combine);
-    setDisplayMap(1);
+    setDisplayMap(0);
 }
 
 std::vector<cv::KeyPoint> convertMatToKeyPoints(const cv::Mat& mat) {
@@ -40,7 +41,7 @@ void savedImage(sensor_msgs::Image& msg, std::string saved_path){
     msgToMat(msg, cv_image);
     cv::imwrite(saved_path, cv_image);
 }
-void ORBAlign(sensor_msgs::Image msg1, sensor_msgs::Image msg2){
+void SDF2D::ORBAlign(sensor_msgs::Image msg1, sensor_msgs::Image msg2){
     cv::Mat image1, image2;
 
     msgToMat(msg1, image1);
@@ -88,9 +89,14 @@ void ORBAlign(sensor_msgs::Image msg1, sensor_msgs::Image msg2){
     cv::imwrite("/home/yuxuanzhao/Desktop/result.jpg", result);
 }
 void SDF2D::SDFAlign(std::shared_ptr<SingleMap>& ptr_map1, std::shared_ptr<SingleMap>& ptr_map2){
-    cv::Mat descriptors1, descriptors2;
-    ptr_map1->descriptors.convertTo(descriptors1, CV_32F);
-    ptr_map2->descriptors.convertTo(descriptors2, CV_32F);
+    std::vector<cv::Mat> descs1, descs2;
+    for(int i = 0; i < 3; i++){
+        cv::Mat descriptors1, descriptors2;
+        ptr_map1->descriptors[i].convertTo(descriptors1, CV_32F);
+        ptr_map2->descriptors[i].convertTo(descriptors2, CV_32F);
+        descs1.push_back(descriptors1);
+        descs2.push_back(descriptors2);
+    }
 
     cv::Mat image1, image2;
     msgToMat(ptr_map1->img, image1);
@@ -103,10 +109,10 @@ void SDF2D::SDFAlign(std::shared_ptr<SingleMap>& ptr_map1, std::shared_ptr<Singl
     // 使用BFMatcher进行匹配
     cv::BFMatcher matcher(cv::NORM_L2); // Use L2 norm for matching histograms
     std::vector<cv::DMatch> matches;
-    matcher.match(descriptors1, descriptors2, matches);
+    matcher.match(descs1[1], descs2[1], matches);
     // 仅选择最佳匹配
     std::sort(matches.begin(), matches.end());
-    const int numGoodMatches = matches.size() * 0.06;
+    const int numGoodMatches = matches.size() * 0.02;
     matches.erase(matches.begin() + numGoodMatches, matches.end());
 
     // for(const auto& match : matches) {
@@ -116,8 +122,8 @@ void SDF2D::SDFAlign(std::shared_ptr<SingleMap>& ptr_map1, std::shared_ptr<Singl
 
     // Draw top matches
     std::vector<cv::KeyPoint> keypoints1, keypoints2;
-    keypoints1 = convertMatToKeyPoints(ptr_map1->keypoints);
-    keypoints2 = convertMatToKeyPoints(ptr_map2->keypoints);
+    keypoints1 = convertMatToKeyPoints(ptr_map1->keypoints[1]);
+    keypoints2 = convertMatToKeyPoints(ptr_map2->keypoints[1]);
     cv::Mat imMatches;
     cv::drawMatches(image1, keypoints1, image2, keypoints2, matches, imMatches);
     cv::imwrite("/home/yuxuanzhao/Desktop/matches.jpg", imMatches);
@@ -139,7 +145,7 @@ void SDF2D::SDFAlign(std::shared_ptr<SingleMap>& ptr_map1, std::shared_ptr<Singl
 
 cv::Mat convertPointCloud20ToMat(const grid_map_demos::PointCloud20& cloud) {
     // 创建一个空的Mat，行数与点云中的点数相同，每行有20个元素
-    cv::Mat mat(cloud.points.size(), 20, CV_32F);
+    cv::Mat mat(cloud.points.size(), 21, CV_32F);
 
     for (size_t i = 0; i < cloud.points.size(); i++) {
         const auto& point = cloud.points[i];
@@ -164,6 +170,7 @@ cv::Mat convertPointCloud20ToMat(const grid_map_demos::PointCloud20& cloud) {
         mat.at<float>(i, 17) = point.hist15;
         mat.at<float>(i, 18) = point.hist16;
         mat.at<float>(i, 19) = point.hist17;
+        mat.at<float>(i, 20) = point.histavg;
     }
     return mat;
 }
@@ -267,6 +274,10 @@ void SDF2D::mapFromImage(std::shared_ptr<SingleMap>& ptr){
     srv_sdf.request.sdf_map = *msg_sdf;
     client_sdf.call(srv_sdf);
     grid_map_demos::PointCloud20 data = srv_sdf.response.cloud;
+    int n_of_max = srv_sdf.response.n_of_max;
+    int n_of_min = srv_sdf.response.n_of_min;
+    int n_of_saddle = srv_sdf.response.n_of_saddle;
+
     cv::Mat keypointsAndDescriptors = convertPointCloud20ToMat(data);
 
     // show keypoints
@@ -274,19 +285,29 @@ void SDF2D::mapFromImage(std::shared_ptr<SingleMap>& ptr){
 
     cv::Mat& kdmat = keypointsAndDescriptors;
     // 4. split 分割为两个子矩阵
-    ptr->keypoints = kdmat(cv::Range::all(), cv::Range(0, 3)).clone(); // n x 3
-    ptr->descriptors = kdmat(cv::Range::all(), cv::Range(3, kdmat.cols)).clone(); // n x 17
+    // ptr->keypoints = kdmat(cv::Range::all(), cv::Range(0, 3)).clone(); // n x 3
+    // ptr->descriptors = kdmat(cv::Range::all(), cv::Range(3, kdmat.cols)).clone(); // n x 17
+    cv::Mat kps = kdmat(cv::Range::all(), cv::Range(0, 3)).clone();
+    cv::Mat descs = kdmat(cv::Range::all(), cv::Range(3, kdmat.cols)).clone();
+    ptr->keypoints.push_back(kps(cv::Range(0, n_of_max), cv::Range::all()).clone());
+    ptr->keypoints.push_back(kps(cv::Range(n_of_max, n_of_max + n_of_min), cv::Range::all()).clone());
+    ptr->keypoints.push_back(kps(cv::Range(n_of_max+n_of_min, n_of_max+n_of_min+n_of_saddle), cv::Range::all()).clone());
+
+    ptr->descriptors.push_back(descs(cv::Range(0, n_of_max), cv::Range::all()).clone());
+    ptr->descriptors.push_back(descs(cv::Range(n_of_max, n_of_max + n_of_min), cv::Range::all()).clone());
+    ptr->descriptors.push_back(descs(cv::Range(n_of_max+n_of_min, n_of_max+n_of_min+n_of_saddle), cv::Range::all()).clone());
 
     ptrs.push_back(ptr);
-    // Eigen::Matrix<float, -1, -1> target;
-    // cv::cv2eigen(keypointsAndDescriptors, target);
-    // std::string filename("/home/yuxuanzhao/Desktop/dpAndDesc.txt");
-    // std::ofstream fout(filename);
-    // if(fout.is_open()){
-    //     fout<<target;
-    //     fout.close();
-    //     ROS_INFO("Matrix written to file [%s] successfully.", filename.c_str());
-    // } else{
-    //     ROS_WARN("Unable to open file [%s]", filename.c_str());
-    // }
+    Eigen::Matrix<float, -1, -1> target;
+    cv::cv2eigen(ptr->descriptors[0], target);
+    std::string filename("/home/yuxuanzhao/Desktop/descs0.txt");
+    std::ofstream fout(filename);
+    if(fout.is_open()){
+        fout<<target;
+        fout.close();
+        ROS_INFO("Matrix written to file [%s] successfully.", filename.c_str());
+        ROS_INFO("Number of max: %d\n Number of min: %d\n Number of saddle: %d", n_of_max, n_of_min, n_of_saddle);
+    } else{
+        ROS_WARN("Unable to open file [%s]", filename.c_str());
+    }
 }

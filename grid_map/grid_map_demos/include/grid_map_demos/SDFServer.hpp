@@ -27,7 +27,7 @@ public:
     void detect_gaussian_curvature_and_eigen(const cv::Mat& src, int ksize, cv::Mat& dst_doh, cv::Mat& dst_eigenvalue1 , cv::Mat& dst_eigenvalue2);
     void find_extrema_points(const cv::Mat& src_doh, std::vector<cv::Point>& dst_extrema_points);
     void classify_extrema_points(const std::vector<cv::Point>& src_extrema_points, cv::Mat& src_eigenvalue1 , cv::Mat& src_eigenvalue2, std::vector<std::vector<cv::Point>>& dst);
-    void makeDescriptorForSingleKeypoint(cv::Mat& src_sdf_, cv::Point& keypoint, std::vector<float>& hist_17bin_out);
+    void makeDescriptorForSingleKeypoint(cv::Mat& src_sdf_, cv::Point& keypoint, std::vector<float>& hist_17bin_out, float& avg_dist);
     float gaussianDistanceWeight(int i, int j);
 
 private:
